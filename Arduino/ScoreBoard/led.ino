@@ -52,13 +52,14 @@ void segmentSetOnly(int digit, int segment) {
   segmentSet(seg[digit][segment], HIGH);
 }
 
-void scoreSet (int side, int score) {
+void scoreSetSide(int side, int score) {
   int MIN_VALUE = 0;
   int MAX_VALUE = 99;
  
-  if (score == 100) {   // Blank the score on that side
+  if (LedsON == LOW) {   // Blank the score on that side
     digitSet(0 + side*2, 10);
     digitSet(1 + side*2, 10);
+    return;
   }
   if (score < MIN_VALUE || score > MAX_VALUE) return; 
   if (side < 0 || side > 1) return;
@@ -67,6 +68,11 @@ void scoreSet (int side, int score) {
   int decena = score / 10; // Extracting the decena by integer division by 10
   digitSet(0 + side*2, unit);
   digitSet(1 + side*2, decena);
+}
+
+void scoreSet(void) {
+  scoreSetSide(1,scoreSideLeft);
+  scoreSetSide(0,scoreSideRight);
 }
 
 /// EXAMPLES for test ////
@@ -98,6 +104,35 @@ void digitCountDownExample(int digit) {
     }
 }
 
+void digitNibbleExample2(int digit) {
+  // Circle nibble slowing down
+  static float wait_time = 1;
+  static int a = 0;
+  wait_time = 1000;
+  
+    a = !a;
+    for (int i=0;i<6;i++){
+      segmentSetOnly(digit, i);
+      delay(wait_time); 
+    }
+  delay(wait_time);   
+  
+}
+
+void digitNibbleExample3(void) {
+  // Circle nibble slowing down
+  static float wait_time = 1;
+  static int a = 0;
+  wait_time = 200;
+    for (int i=0;i<7;i++){
+      segmentSetOnly(0, i);
+      segmentSetOnly(1, i);
+      segmentSetOnly(2, i);
+      segmentSetOnly(3, i);
+      delay(wait_time); 
+    }
+}
+
 void digitNibbleExample(int digit) {
   // Circle nibble slowing down
   static float wait_time = 1;
@@ -112,18 +147,6 @@ void digitNibbleExample(int digit) {
     wait_time = wait_time * 1.4;
   }  while (wait_time<250); 
 }
-
-void digitNibbleExample2(int digit) {
-  // Circle nibble slowing down
-  static float wait_time = 1;
-  wait_time = 1000;
-    for (int i=0;i<7;i++){
-      segmentSetOnly(digit, i);
-      delay(wait_time); 
-    }
-}
-
-
 
 // handle diagnostic informations given by assertion and abort program execution:
 void __assert(const char *__func, const char *__file, int __lineno, const char *__sexp) {

@@ -1,4 +1,4 @@
-#include led.h
+//#include "led.h"
 
 #define play playNote
 #define NOTE_C4  262
@@ -56,6 +56,13 @@
 #define DURATION_EIGHTH   (TEMPO / 2)
 #define DURATION_HALF     (TEMPO * 2)
 
+#define NOTE_1 NOTE_E4*4
+#define NOTE_2 NOTE_G4*4
+#define NOTE_3 NOTE_A4*4
+#define NOTE_4 NOTE_B4*4
+#define NOTE_5 NOTE_D5*4
+#define NOTE_6 NOTE_DS5*4
+#define NOTE_7 NOTE_E5*4
 
 
 void buzzerInit(){
@@ -81,46 +88,45 @@ void buzzerPlayMelodyEndGame() {
   playNote(NOTE_C4, DURATION_HALF);
 }
 
-#define setScore      scoreSet(SideTeamA, scoreTeamA); scoreSet(SideTeamB, scoreTeamB);
-#define clearScore    scoreSet(SideTeamA, 100); scoreSet(SideTeamB, 100);
+#define set      LedsON = HIGH; scoreSet();
+#define clear    LedsON = LOW; scoreSet();
 
-void buzzerDucks() {
+void buzzerDucks1() {
+  int dur = 170;
 
-  setScore
-  playNote(NOTE_G4, S);
-  playNote(NOTE_G4, S);
-  clearScore
-  playNote(NOTE_A4, S);
-  playNote(NOTE_A4, S);
-  setScore
-  playNote(NOTE_E4, S);
-  playNote(NOTE_E4, S);
-  clearScore
-  playNote(NOTE_G4, S);
-  playRest(S);
-  setScore
-  playNote(NOTE_G4, S);
-  playNote(NOTE_G4, S);
-  clearScore
-  playNote(NOTE_A4, S);
-  playNote(NOTE_A4, S);
-  setScore
-  playNote(NOTE_E4, S);
-  playNote(NOTE_E4, S);
-  clearScore
-  playNote(NOTE_G4, S);
-  playRest(S);
-  setScore
-  // playNote(NOTE_G4, S);
-  // playNote(NOTE_G4, S);
-  // clearScore
-  // playNote(NOTE_A4, S);
-  // playNote(NOTE_A4, S);
-  // setScore
-  // playNote(NOTE_G4, S);
-  // playNote(NOTE_G4, S);
-  // playNote(NOTE_B4, Q);
+  set
+  playNote(NOTE_7, dur);
+  clear
+  playNote(NOTE_5, dur);
+  set
+  playNote(NOTE_4, dur);
+  clear
+  playNote(NOTE_3, dur);
+    set
+  playNote(NOTE_2, dur);
+  clear
+  playNote(NOTE_1, dur);
 }
+
+void buzzerDucks2() {
+  int dur = 160;
+
+  set
+  playNote(NOTE_1, dur);
+  clear
+  playNote(NOTE_2, dur);
+  set
+  playNote(NOTE_3, dur);
+  clear
+  playNote(NOTE_4, dur);
+    set
+  playNote(NOTE_5, dur);
+  clear
+  playNote(NOTE_6, dur);
+  set
+  playNote(NOTE_7, dur*2);
+}
+
 void buzzerPlayMelodyMario() {
   // Super Mario Bros Theme Melody
   play(NOTE_E5, E);
@@ -228,15 +234,39 @@ void playNote(int frequency, int duration) {
 }
 
 void buzzerClick() {
-  playNote(NOTE_C6, 50);
+  playNote(NOTE_1, 30);
+  playNote(NOTE_7, 30);
+}
+
+void buzzerBLEconnected() {
+  playNote(NOTE_1, 50);
+  playNote(NOTE_3, 50);
+  playNote(NOTE_5, 50);
+  playNote(NOTE_7, 50);
+}
+
+void buzzerBLEdisconnected() {
+  playNote(NOTE_7, 50);
+  playNote(NOTE_5, 50);
+  playNote(NOTE_3, 50);
+  playNote(NOTE_1, 50);
+}
+
+void buzzerStartMelody() {
+  playNote(NOTE_1, Q);
+  playNote(NOTE_2, Q);
+  playNote(NOTE_3, Q);
+  playNote(NOTE_4, Q);
+  playNote(NOTE_5, Q);
+  playNote(NOTE_6, Q);
+  playNote(NOTE_7, H);
 }
 
 
-
 void buzzerChangeSide() {
-  playNote(NOTE_F4, 500);
+  playNote(800, 500);
   delay(100);
-  playNote(NOTE_F4, 500);
+  playNote(900, 500);
 }
 
 void playRest(int duration) {
