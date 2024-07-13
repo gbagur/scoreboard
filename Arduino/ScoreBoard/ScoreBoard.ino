@@ -8,14 +8,16 @@
 #include <math.h>
 
 // List of commands
-#define CMD01_TEAM_A_INC      1
-#define CMD02_TEAM_A_DEC      2
-#define CMD03_TEAM_B_INC      3
-#define CMD04_TEAM_B_DEC      4
-#define CMD10_RESET_COUNTERS  10
-#define CMD11_DISPLAY_ON_OFF  11
-#define CMD12_CHANGE_SIDES    12
-#define CMDxx_SOUND_ON_OFF    13
+#define CMD_TEAM_A_INC      1
+#define CMD_TEAM_A_DEC      2
+#define CMD_TEAM_B_INC      3
+#define CMD_TEAM_B_DEC      4
+#define CMD_TEAM_A_SET      5
+#define CMD_TEAM_B_SET      6
+#define CMD_RESET_COUNTERS  10
+#define CMD_DISPLAY_ON_OFF  11
+#define CMD_CHANGE_SIDES    12
+#define CMD_SOUND_ON_OFF    13
 
 #define check_side_change() {if ((scoreSideLeft+scoreSideRight)%7==0 && (scoreSideLeft+scoreSideRight>0)) changeSideCall();}
 
@@ -81,12 +83,37 @@ void setup() {
   
 }
 
+unsigned long previousMillis = 0;  // Stores the last time the task was executed
+const long interval = 1000;        // Interval at which to perform the task (1 second)
+BLEDevice central;
+
 void loop() {
   // listen for BLE peripherals to connect:
   static int note = 400;
   static int state = 0;
-  // if no BLE connection, this will be executed:
-  state = 0;
+
+  unsigned long currentMillis = millis();  // Get the current time
+
+  // Check every 1 second if there is a new BLE connexion
+  if (currentMillis - previousMillis >= interval) {
+    previousMillis = currentMillis;  // Save the current time
+    
+    if (state == 0) { // disconnected
+      central = BLE.central();
+      if (central) {
+        buzzerBLEconnected();
+        //digitSet(0, 3);
+        Serial.print("Connected to central: ");
+        // print the central's MAC address:
+        Serial.println(central.address());
+        Serial.print("Device Name: ");
+        Serial.println(central.deviceName());
+        state = 1; 
+        Serial.println(F("State: 1 - Connected "));
+      }
+    }
+  }
+
   if (Serial.available() > 0) { // Check if data is available to read
     char command = Serial.read(); // Read the incoming command
     Serial.print("Commando recibido: ");
@@ -122,49 +149,37 @@ void loop() {
     }
   }  
   
-  BLEDevice central = BLE.central();
-  if (central) {
-    if (state == 0) buzzerBLEconnected();
-    state = 1;
-    //digitSet(0, 3);
-    Serial.print("Connected to central: ");
-    // print the central's MAC address:
-    Serial.println(central.address());
-    Serial.print("Device Name: ");
-    Serial.println(central.deviceName());
-    // while the central is still connected to peripheral...
-    while (central.connected()) {
-      //if (state == 1) buzzerBLEconnected();
-      state = 2;
+  if (state == 1) {
+    if (central.connected()) {
       if (commandCharacteristic.written()) {
         buzzerClick();
         int command = commandCharacteristic.value();
         Serial.println("BLE Command received: "+ String(command));
         switch (command) {
-        case CMD01_TEAM_A_INC:
+        case CMD_TEAM_A_INC:
           if (scoreSideLeft < 99) scoreSideLeft++;
           LedsON = HIGH;
           break;
-        case CMD02_TEAM_A_DEC:
+        case CMD_TEAM_A_DEC:
           if (scoreSideLeft > 0) scoreSideLeft--;
           LedsON = HIGH;
           break;
-        case CMD03_TEAM_B_INC:
+        case CMD_TEAM_B_INC:
           if (scoreSideRight < 99) scoreSideRight++;
           LedsON = HIGH;
           break;
-        case CMD04_TEAM_B_DEC:
+        case CMD_TEAM_B_DEC:
           if (scoreSideRight > 0) scoreSideRight--;
           LedsON = HIGH;
           break;
-        case CMD10_RESET_COUNTERS:
+        case CMD_RESET_COUNTERS:
           scoreSideLeft = 0;
           scoreSideRight = 0;
           break;
-        case CMD11_DISPLAY_ON_OFF:
+        case CMD_DISPLAY_ON_OFF:
           LedsON = !LedsON;
           break;
-        case CMD12_CHANGE_SIDES:                 
+        case CMD_CHANGE_SIDES:                 
           changeSideCall();
           break;
         default:
@@ -172,7 +187,7 @@ void loop() {
         }
         scoreSet();
         Serial.println("New score -> Team A: " + String(scoreSideLeft) + "   Team B: "+ String(scoreSideRight));
-        if (command==CMD01_TEAM_A_INC || command==CMD03_TEAM_B_INC) check_side_change();
+        if (command==CMD_TEAM_A_INC || command==CMD_TEAM_B_INC) check_side_change();
       }
       // BLE.scan();
       // BLEDevice newCentral = BLE.available();
@@ -182,13 +197,14 @@ void loop() {
       //   // You can handle the new connection here, e.g., accept or reject it.
       // }
     }
-    //digitSet(0, 5);
-    // when the central disconnects, print it out:
-    Serial.print(F("Disconnected from central: "));
-    Serial.println(central.address());
-    Serial.print(F("State: "));
-    Serial.println(state);
-    if (state == 2) buzzerBLEdisconnected();
+    else {
+      // when the central disconnects, print it out:
+      Serial.print(F("Disconnected from central: "));
+      Serial.println(central.address());
+      buzzerBLEdisconnected();
+      state = 0;
+      Serial.println(F("State: 0 - Disconnected "));
+    }
   }
 }
 
