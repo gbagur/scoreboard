@@ -5,8 +5,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".MainActivity"
-    android:background="#AAAA8A">
+    android:background="@color/black"
+    tools:context=".MainActivity">
 
 
     <LinearLayout
@@ -42,12 +42,12 @@
                 android:id="@+id/textView"
                 android:layout_width="match_parent"
                 android:layout_height="38dp"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="36dp"
                 android:layout_weight="1"
-                android:text="Tukasa Scoreboard App"
+                android:text="MakerHub ScoreBoard"
                 android:textAlignment="center"
                 android:textAppearance="@style/TextAppearance.AppCompat.Large"
-                android:textColor="@color/cardview_dark_background"
+                android:textColor="@color/titulos"
                 android:textStyle="bold" />
 
             <ImageButton
@@ -77,11 +77,11 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-
+                android:textSize="22sp"
                 android:inputType="text"
-                android:text="Team A"
-                android:textColor="@color/cardview_dark_background"
-                android:textAlignment="center" />
+                android:text="Side A"
+                android:textAlignment="center"
+                android:textColor="@color/titulos" />
 
             <Space
                 android:layout_width="0dp"
@@ -93,11 +93,11 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-
+                android:textSize="22sp"
                 android:inputType="text"
-                android:text="Team B"
-                android:textColor="@color/cardview_dark_background"
-                android:textAlignment="center" />
+                android:text="Side B"
+                android:textAlignment="center"
+                android:textColor="@color/titulos" />
 
             <Space
                 android:layout_width="0dp"
@@ -120,9 +120,9 @@
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
+                android:backgroundTint="@color/buttons"
                 android:contentDescription="Up"
                 android:src="@drawable/arrow_up"
-                android:backgroundTint="@color/buttons"
                 app:tint="#000000" />
 
             <Space
@@ -135,9 +135,9 @@
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
+                android:backgroundTint="@color/buttons"
                 android:contentDescription="Up"
                 android:src="@drawable/arrow_up"
-                android:backgroundTint="@color/buttons"
                 app:tint="#000000" />
 
             <Space
@@ -161,8 +161,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:contentDescription="Down"
                 android:backgroundTint="@color/buttons"
+                android:contentDescription="Down"
                 android:src="@drawable/arrow_down"
 
                 app:tint="#000000" />
@@ -177,9 +177,9 @@
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
+                android:backgroundTint="@color/buttons"
                 android:contentDescription="Down"
                 android:src="@drawable/arrow_down"
-                android:backgroundTint="@color/buttons"
                 app:tint="#000000" />
 
             <Space
@@ -200,8 +200,8 @@
                 android:layout_marginStart="32dp"
                 android:layout_marginTop="28dp"
                 android:layout_marginEnd="32dp"
-                android:backgroundTint="@color/buttons"
                 android:layout_weight="1"
+                android:backgroundTint="@color/buttons"
                 android:text="Reset Counters"
                 android:textSize="22sp" />
 
@@ -212,8 +212,8 @@
                 android:layout_marginStart="32dp"
                 android:layout_marginTop="8dp"
                 android:layout_marginEnd="32dp"
-                android:backgroundTint="@color/buttons"
                 android:layout_weight="1"
+                android:backgroundTint="@color/buttons"
                 android:text="Display ON/OFF"
                 android:textSize="22sp" />
 
@@ -224,10 +224,11 @@
                 android:layout_marginStart="32dp"
                 android:layout_marginTop="8dp"
                 android:layout_marginEnd="32dp"
-                android:backgroundTint="@color/buttons"
                 android:layout_weight="1"
+                android:backgroundTint="@color/buttons"
                 android:text="Change sides"
                 android:textSize="22sp" />
+
             <Button
                 android:id="@+id/close_app"
                 android:layout_width="match_parent"
@@ -235,8 +236,8 @@
                 android:layout_marginStart="32dp"
                 android:layout_marginTop="8dp"
                 android:layout_marginEnd="32dp"
-                android:backgroundTint="@color/buttons"
                 android:layout_weight="1"
+                android:backgroundTint="@color/buttons"
                 android:text="CLOSE"
                 android:textSize="22sp" />
         </LinearLayout>

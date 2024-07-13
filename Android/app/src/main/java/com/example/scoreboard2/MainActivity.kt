@@ -109,7 +109,7 @@ class MainActivity : AppCompatActivity() {
             Log.d("Gabi", "bluetoothDevice not found")
         } else {
             Log.d("Gabi", "bluetoothDevice Found!")
-            Log.d("Gabi", bluetoothDevice.name)
+            //Log.d("Gabi", bluetoothDevice.name)
         }
 
         bluetoothGatt = bluetoothDevice.connectGatt(this, false, gattCallback)
