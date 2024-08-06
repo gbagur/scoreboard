@@ -8,12 +8,12 @@
 #include <math.h>
 
 // List of commands
-#define CMD_TEAM_A_INC      1
-#define CMD_TEAM_A_DEC      2
-#define CMD_TEAM_B_INC      3
-#define CMD_TEAM_B_DEC      4
-#define CMD_TEAM_A_SET      5
-#define CMD_TEAM_B_SET      6
+#define CMD_SIDE_A_INC      1
+#define CMD_SIDE_A_DEC      2
+#define CMD_SIDE_B_INC      3
+#define CMD_SIDE_B_DEC      4
+#define CMD_SIDE_A_SET      5
+#define CMD_SIDE_B_SET      6
 #define CMD_RESET_COUNTERS  10
 #define CMD_DISPLAY_ON_OFF  11
 #define CMD_CHANGE_SIDES    12
@@ -153,25 +153,36 @@ void loop() {
     if (central.connected()) {
       if (commandCharacteristic.written()) {
         buzzerClick();
-        int command = commandCharacteristic.value();
+        int value = commandCharacteristic.value();
+        int command = value & 0xFF;
+        int data = (value >> 8 ) & 0xFF;
         Serial.println("BLE Command received: "+ String(command));
+        Serial.println("BLE data: "+ String(data));
         switch (command) {
-        case CMD_TEAM_A_INC:
+        case CMD_SIDE_A_INC:
           if (scoreSideLeft < 99) scoreSideLeft++;
           LedsON = HIGH;
           break;
-        case CMD_TEAM_A_DEC:
+        case CMD_SIDE_A_DEC:
           if (scoreSideLeft > 0) scoreSideLeft--;
           LedsON = HIGH;
           break;
-        case CMD_TEAM_B_INC:
+        case CMD_SIDE_B_INC:
           if (scoreSideRight < 99) scoreSideRight++;
           LedsON = HIGH;
           break;
-        case CMD_TEAM_B_DEC:
+        case CMD_SIDE_B_DEC:
           if (scoreSideRight > 0) scoreSideRight--;
           LedsON = HIGH;
           break;
+        case CMD_SIDE_A_SET:
+          scoreSideLeft = 10;
+          LedsON = HIGH;
+          break;
+        case CMD_SIDE_B_SET:
+          scoreSideRight = 10;
+          LedsON = HIGH;
+          break;          
         case CMD_RESET_COUNTERS:
           scoreSideLeft = 0;
           scoreSideRight = 0;
@@ -187,7 +198,7 @@ void loop() {
         }
         scoreSet();
         Serial.println("New score -> Team A: " + String(scoreSideLeft) + "   Team B: "+ String(scoreSideRight));
-        if (command==CMD_TEAM_A_INC || command==CMD_TEAM_B_INC) check_side_change();
+        if (command==CMD_SIDE_A_INC || command==CMD_SIDE_B_INC) check_side_change();
       }
       // BLE.scan();
       // BLEDevice newCentral = BLE.available();
