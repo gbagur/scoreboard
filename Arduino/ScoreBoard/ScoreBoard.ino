@@ -21,13 +21,8 @@
 
 #define check_side_change() {if ((scoreSideLeft+scoreSideRight)%7==0 && (scoreSideLeft+scoreSideRight>0)) changeSideCall();}
 
-//BLEService ledService("19B10000-E8F2-537E-4F6C-D104768A1214"); // Bluetooth® Low Energy LED Service
-//BLEByteCharacteristic switchCharacteristic("19B10001-E8F2-537E-4F6C-D104768A1214", BLERead | BLEWrite);
-
 BLEService scoreService("45340637-dea7-48d7-9262-5f392e4317c6");
 BLEUnsignedIntCharacteristic commandCharacteristic("81044b7b-7fb3-41e1-9127-a8730afd24ff", BLERead | BLEWrite);
-//BLEUnsignedIntCharacteristic teamBScoreCharacteristic("81044b7b-7fb3-41e1-9127-a8730afd24ff", BLERead | BLEWrite);
-//BLEUnsignedIntCharacteristic teamAScoreCharacteristic("6f61f273-a5c5-4c6a-8744-8ef84a1484c4", BLERead | BLEWrite);
 
 //int sideTeamA;
 int scoreSideLeft;
@@ -63,11 +58,15 @@ void setup() {
 
   // set the initial value for the characeristic:
   commandCharacteristic.writeValue(0);
-  //teamBScoreCharacteristic.writeValue(0);
 
   // start advertising
   BLE.advertise();
   BLE.address();
+  
+  BLE.setEventHandler(BLEConnected, blePeripheralConnectHandler);
+  BLE.setEventHandler(BLEDisconnected, blePeripheralDisconnectHandler);  
+  commandCharacteristic.setEventHandler(BLEWritten, commandCharacteristicWritten);
+  
   Serial.print ("Peripheral address: ");
   Serial.println(BLE.address());
   Serial.println("Setup finished.");
@@ -77,42 +76,24 @@ void setup() {
   scoreSideRight = 0;
   LedsON = HIGH;
   scoreSet();
-  buzzerStartMelody();
+  //buzzerStartMelody();
+  buzzerClick();
   LedsON = LOW;
   scoreSet();
+
   
 }
 
 unsigned long previousMillis = 0;  // Stores the last time the task was executed
 const long interval = 1000;        // Interval at which to perform the task (1 second)
-BLEDevice central;
+
+int state = 0;
 
 void loop() {
   // listen for BLE peripherals to connect:
   static int note = 400;
-  static int state = 0;
 
-  unsigned long currentMillis = millis();  // Get the current time
-
-  // Check every 1 second if there is a new BLE connexion
-  if (currentMillis - previousMillis >= interval) {
-    previousMillis = currentMillis;  // Save the current time
-    
-    if (state == 0) { // disconnected
-      central = BLE.central();
-      if (central) {
-        buzzerBLEconnected();
-        //digitSet(0, 3);
-        Serial.print("Connected to central: ");
-        // print the central's MAC address:
-        Serial.println(central.address());
-        Serial.print("Device Name: ");
-        Serial.println(central.deviceName());
-        state = 1; 
-        Serial.println(F("State: 1 - Connected "));
-      }
-    }
-  }
+  BLE.poll();
 
   if (Serial.available() > 0) { // Check if data is available to read
     char command = Serial.read(); // Read the incoming command
@@ -149,74 +130,6 @@ void loop() {
     }
   }  
   
-  if (state == 1) {
-    if (central.connected()) {
-      if (commandCharacteristic.written()) {
-        buzzerClick();
-        int value = commandCharacteristic.value();
-        int command = value & 0xFF;
-        int data = (value >> 8 ) & 0xFF;
-        Serial.println("BLE Command received: "+ String(command));
-        Serial.println("BLE data: "+ String(data));
-        switch (command) {
-        case CMD_SIDE_A_INC:
-          if (scoreSideLeft < 99) scoreSideLeft++;
-          LedsON = HIGH;
-          break;
-        case CMD_SIDE_A_DEC:
-          if (scoreSideLeft > 0) scoreSideLeft--;
-          LedsON = HIGH;
-          break;
-        case CMD_SIDE_B_INC:
-          if (scoreSideRight < 99) scoreSideRight++;
-          LedsON = HIGH;
-          break;
-        case CMD_SIDE_B_DEC:
-          if (scoreSideRight > 0) scoreSideRight--;
-          LedsON = HIGH;
-          break;
-        case CMD_SIDE_A_SET:
-          scoreSideLeft = 10;
-          LedsON = HIGH;
-          break;
-        case CMD_SIDE_B_SET:
-          scoreSideRight = 10;
-          LedsON = HIGH;
-          break;          
-        case CMD_RESET_COUNTERS:
-          scoreSideLeft = 0;
-          scoreSideRight = 0;
-          break;
-        case CMD_DISPLAY_ON_OFF:
-          LedsON = !LedsON;
-          break;
-        case CMD_CHANGE_SIDES:                 
-          changeSideCall();
-          break;
-        default:
-          break;
-        }
-        scoreSet();
-        Serial.println("New score -> Team A: " + String(scoreSideLeft) + "   Team B: "+ String(scoreSideRight));
-        if (command==CMD_SIDE_A_INC || command==CMD_SIDE_B_INC) check_side_change();
-      }
-      // BLE.scan();
-      // BLEDevice newCentral = BLE.available();
-      // if (newCentral) {
-      //   Serial.print("NEW CENTRA CONNETION: ");
-      //     Serial.println(newCentral.address());
-      //   // You can handle the new connection here, e.g., accept or reject it.
-      // }
-    }
-    else {
-      // when the central disconnects, print it out:
-      Serial.print(F("Disconnected from central: "));
-      Serial.println(central.address());
-      buzzerBLEdisconnected();
-      state = 0;
-      Serial.println(F("State: 0 - Disconnected "));
-    }
-  }
 }
 
 void changeSideCall(void) {
@@ -228,3 +141,73 @@ void changeSideCall(void) {
   scoreSet();
   buzzerDucks2();
 };
+
+void blePeripheralConnectHandler(BLEDevice central) {
+  // central connected event handler
+  Serial.print("*Connected event, central: ");
+  Serial.println(central.address());
+  buzzerBLEconnected();
+  state = 1; 
+  Serial.println(F("State: 1 - Connected "));
+ 
+}
+
+void blePeripheralDisconnectHandler(BLEDevice central) {
+  // central disconnected event handler
+  Serial.print("*Disconnected event, central: ");
+  Serial.println(central.address());
+  state = 0; 
+  Serial.println(F("State: 0 - Disocnnected"));
+  buzzerBLEdisconnected();
+}
+
+void commandCharacteristicWritten(BLEDevice central, BLECharacteristic characteristic) {
+  
+    buzzerClick();
+    int value = commandCharacteristic.value();
+    int command = value & 0xFF;
+    int data = (value >> 8 ) & 0xFF;
+    Serial.println("BLE Command received: "+ String(command));
+    Serial.println("BLE data: "+ String(data));
+    switch (command) {
+    case CMD_SIDE_A_INC:
+      if (scoreSideLeft < 99) scoreSideLeft++;
+      LedsON = HIGH;
+      break;
+    case CMD_SIDE_A_DEC:
+      if (scoreSideLeft > 0) scoreSideLeft--;
+      LedsON = HIGH;
+      break;
+    case CMD_SIDE_B_INC:
+      if (scoreSideRight < 99) scoreSideRight++;
+      LedsON = HIGH;
+      break;
+    case CMD_SIDE_B_DEC:
+      if (scoreSideRight > 0) scoreSideRight--;
+      LedsON = HIGH;
+      break;
+    case CMD_SIDE_A_SET:
+      scoreSideLeft = data;
+      LedsON = HIGH;
+      break;
+    case CMD_SIDE_B_SET:
+      scoreSideRight = data;
+      LedsON = HIGH;
+      break;          
+    case CMD_RESET_COUNTERS:
+      scoreSideLeft = 0;
+      scoreSideRight = 0;
+      break;
+    case CMD_DISPLAY_ON_OFF:
+      LedsON = !LedsON;
+      break;
+    case CMD_CHANGE_SIDES:                 
+      changeSideCall();
+      break;
+    default:
+      break;
+    }
+    scoreSet();
+    Serial.println("New score -> Team A: " + String(scoreSideLeft) + "   Team B: "+ String(scoreSideRight));
+    if (command==CMD_SIDE_A_INC || command==CMD_SIDE_B_INC) check_side_change();
+}
