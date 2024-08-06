@@ -19,8 +19,9 @@ import androidx.core.content.ContextCompat
 import java.util.UUID
 
 
-class MainActivity : AppCompatActivity() {
 
+class MainActivity : AppCompatActivity() {
+    private val REQUEST_BLUETOOTH_CONNECT = 1
     private lateinit var bluetoothAdapter: BluetoothAdapter
     private lateinit var bluetoothDevice: BluetoothDevice
     private lateinit var bluetoothGatt: BluetoothGatt
@@ -43,6 +44,25 @@ class MainActivity : AppCompatActivity() {
         // Close the app when it loses focus
         disconnectBLE()
         finish()
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        when (requestCode) {
+            REQUEST_BLUETOOTH_CONNECT -> {
+                if ((grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
+                    // Permission was granted, proceed with Bluetooth connection
+                } else {
+                    // Permission denied, handle the case
+                }
+                return
+            }
+            // Handle other permissions if there are more
+        }
     }
 
     private fun disconnectBLE() {
@@ -96,6 +116,20 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.BLUETOOTH_CONNECT
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            // Request the permission
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.BLUETOOTH_CONNECT),
+                REQUEST_BLUETOOTH_CONNECT
+            )
+            return
+        }
+
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
         if (bluetoothAdapter == null) {
             Log.d("Gabi", "bluetoothAdapter not found")
@@ -104,7 +138,9 @@ class MainActivity : AppCompatActivity() {
         }
 
         bluetoothDevice =
-            bluetoothAdapter.getRemoteDevice("C0:89:C0:6B:AD:4B") // Replace with your device's MAC address
+
+            //bluetoothAdapter.getRemoteDevice("C0:89:C0:6B:AD:4B") // Replace with your device's MAC address
+            bluetoothAdapter.getRemoteDevice("C0:C3:45:37:24:51") // Replace with your device's MAC address
         if (bluetoothDevice == null) {
             Log.d("Gabi", "bluetoothDevice not found")
         } else {
