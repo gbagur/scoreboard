@@ -6,36 +6,37 @@ import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCallback
 import android.bluetooth.BluetoothGattCharacteristic
-import android.bluetooth.BluetoothGattService
 import android.content.pm.PackageManager
-import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.widget.Button
 import android.widget.ImageButton
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import java.util.UUID
+import android.widget.EditText
 
+// List of commands
+const val CMD_SIDE_A_SET =     5
+const val CMD_SIDE_B_SET =     6
+const val CMD_RESET_COUNTERS = 10
+const val CMD_DISPLAY_ON_OFF = 11
+const val CMD_CHANGE_SIDES =   12
 
+// ScoreBoard BLE values
+const val SCOREBOARD_MAC = "C0:C3:45:37:24:51"
+const val SCOREBOARD_SERVICE = "45340637-DEA7-48D7-9262-5F392E4317C6"
+const val SCOREBOARD_COMMAND_CHARACTERISTIC = "81044b7b-7fb3-41e1-9127-a8730afd24ff"
 
 class MainActivity : AppCompatActivity() {
     private val REQUEST_BLUETOOTH_CONNECT = 1
     private lateinit var bluetoothAdapter: BluetoothAdapter
     private lateinit var bluetoothDevice: BluetoothDevice
     private lateinit var bluetoothGatt: BluetoothGatt
-    lateinit var bluetoothService: BluetoothGattService
-    lateinit var bluetoothCharacteristicTeamA: BluetoothGattCharacteristic
-    lateinit var bluetoothCharacteristicTeamB: BluetoothGattCharacteristic
+    lateinit var bluetoothCharacteristicCommand: BluetoothGattCharacteristic
 
-
-
-    private val scoreService = "45340637-DEA7-48D7-9262-5F392E4317C6"
-    private val teamAScoreCharacteristic = "81044b7b-7fb3-41e1-9127-a8730afd24ff"
-    private val teamBScoreCharacteristic = "6f61f273-a5c5-4c6a-8744-8ef84a1484c4"
-
-    //private val BLUETOOTH_PERMISSION_CODE = 123
+    private val scoreService = SCOREBOARD_SERVICE
+    private val commandCharacteristic = SCOREBOARD_COMMAND_CHARACTERISTIC
 
     override fun onPause() {
         super.onPause()
@@ -92,29 +93,14 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        //val connectButton: Button = findViewById(R.id.connectButton)
-        val button_AP: ImageButton = findViewById(R.id.button_AP)
+        val textbox_sideA: EditText = findViewById(R.id.textbox_sideA)
         val button_AM: ImageButton = findViewById(R.id.button_AM)
-        val button_BP: ImageButton = findViewById(R.id.button_BP)
+        val textbox_sideB: EditText = findViewById(R.id.textbox_sideB)
         val button_BM: ImageButton = findViewById(R.id.button_BM)
         val button_reset: Button = findViewById(R.id.button_reset)
         val display_on_off: Button = findViewById(R.id.display_on_off)
         val change_side: Button = findViewById(R.id.change_side)
         val close_app: Button = findViewById(R.id.close_app)
-
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            // Check if Bluetooth permissions are granted
-            if (ContextCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.BLUETOOTH
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                // Request Bluetooth permissions
-
-
-            }
-        }
 
         if (ActivityCompat.checkSelfPermission(
                 this,
@@ -132,63 +118,59 @@ class MainActivity : AppCompatActivity() {
 
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
         if (bluetoothAdapter == null) {
-            Log.d("Gabi", "bluetoothAdapter not found")
+            Log.d("BLE debug", "bluetoothAdapter not found")
         } else {
-            Log.d("Gabi", "bluetoothAdapter Found!")
+            Log.d("BLE debug", "bluetoothAdapter Found!")
         }
 
         bluetoothDevice =
 
             //bluetoothAdapter.getRemoteDevice("C0:89:C0:6B:AD:4B") // Replace with your device's MAC address
-            bluetoothAdapter.getRemoteDevice("C0:C3:45:37:24:51") // Replace with your device's MAC address
+            bluetoothAdapter.getRemoteDevice(SCOREBOARD_MAC) // Replace with your device's MAC address
         if (bluetoothDevice == null) {
-            Log.d("Gabi", "bluetoothDevice not found")
+            Log.d("BLE debug", "bluetoothDevice not found")
         } else {
-            Log.d("Gabi", "bluetoothDevice Found!")
-            //Log.d("Gabi", bluetoothDevice.name)
+            Log.d("BLE debug", "bluetoothDevice Found!")
+            //Log.d("BLE debug", bluetoothDevice.name)
         }
 
         bluetoothGatt = bluetoothDevice.connectGatt(this, false, gattCallback)
 
         if (bluetoothGatt == null) {
-            Log.d("Gabi", "Failed to connect to GATT server.")
+            Log.d("BLE debug", "Failed to connect to GATT server.")
         } else {
-            Log.d("Gabi", "Connected to GATT server.")
+            Log.d("BLE debug", "Connected to GATT server.")
         }
 
-
-        button_AP.setOnClickListener {
-            writeCharacteristic(1, 1, bluetoothCharacteristicTeamA)
-        }
         button_AM.setOnClickListener {
-            writeCharacteristic(1, 2, bluetoothCharacteristicTeamA)
-        }
-        button_BP.setOnClickListener {
-            writeCharacteristic(0, 3, bluetoothCharacteristicTeamA)
+            val value = textbox_sideA.text.toString()
+            val inputNumber: Int = value.toInt()
+            writeCharacteristic(inputNumber, CMD_SIDE_A_SET, bluetoothCharacteristicCommand)
         }
         button_BM.setOnClickListener {
-            writeCharacteristic(0, 4, bluetoothCharacteristicTeamA)
+            val value = textbox_sideB.text.toString()
+            val inputNumber: Int = value.toInt()
+            writeCharacteristic(inputNumber, CMD_SIDE_B_SET, bluetoothCharacteristicCommand)
         }
         button_reset.setOnClickListener {
-            writeCharacteristic(0, 10, bluetoothCharacteristicTeamA)
+            writeCharacteristic(0, CMD_RESET_COUNTERS, bluetoothCharacteristicCommand)
         }
         display_on_off.setOnClickListener {
-            writeCharacteristic(0, 11, bluetoothCharacteristicTeamA)
+            writeCharacteristic(0, CMD_DISPLAY_ON_OFF, bluetoothCharacteristicCommand)
         }
         change_side.setOnClickListener {
-            writeCharacteristic(0, 12, bluetoothCharacteristicTeamA)
+            writeCharacteristic(0, CMD_CHANGE_SIDES, bluetoothCharacteristicCommand)
         }
         close_app.setOnClickListener {
             finish()
         }
-
     }
 
+    fun writeCharacteristic(data: Int, command: Int, bluetoothCharacteristic: BluetoothGattCharacteristic) {
+        Log.d("BLE debug", "Write: $data,  $command")
 
-    fun writeCharacteristic(team: Int, value: Int, bluetoothCharacteristic: BluetoothGattCharacteristic) {
-        Log.d("Gabi", "Write char to $value")
 
-        bluetoothCharacteristic?.value = byteArrayOf(value.toByte())
+        bluetoothCharacteristic?.value = byteArrayOf(command.toByte(),data.toByte())
         if (ActivityCompat.checkSelfPermission(
                 this,
                 Manifest.permission.BLUETOOTH_CONNECT
@@ -213,7 +195,7 @@ class MainActivity : AppCompatActivity() {
             val deviceAddress = gatt.device.address
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 if (newState == BluetoothGatt.STATE_CONNECTED) {
-                    Log.w("Gabi BluetoothGattCallback", "Successfully connected to $deviceAddress")
+                    Log.w("BLE debug BluetoothGattCallback", "Successfully connected to $deviceAddress")
                     if (ActivityCompat.checkSelfPermission(
                             this@MainActivity,
                             Manifest.permission.BLUETOOTH_CONNECT
@@ -232,7 +214,7 @@ class MainActivity : AppCompatActivity() {
                     // TODO: Store a reference to BluetoothGatt
 
                 } else if (newState == BluetoothGatt.STATE_DISCONNECTED) {
-                    Log.w("Gabi BluetoothGattCallback", "Successfully disconnected from $deviceAddress")
+                    Log.w("BLE debug BluetoothGattCallback", "Successfully disconnected from $deviceAddress")
                     if (ActivityCompat.checkSelfPermission(this@MainActivity,
                             Manifest.permission.BLUETOOTH_CONNECT
                         ) != PackageManager.PERMISSION_GRANTED
@@ -249,23 +231,20 @@ class MainActivity : AppCompatActivity() {
                     gatt.close()
                 }
             } else {
-                Log.w("Gabi BluetoothGattCallback", "Error $status encountered for $deviceAddress! Disconnecting...")
+                Log.w("BLE debug BluetoothGattCallback", "Error $status encountered for $deviceAddress! Disconnecting...")
                 gatt.close()
             }
         }
 
         override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
-                Log.d("Gabi", "Services discovered successfully.");
+                Log.d("BLE debug", "Services discovered successfully.");
                 // Now you can interact with the services
                 // Example: gatt.readCharacteristic(characteristic);
                 var service = gatt.getService(UUID.fromString(scoreService))
-                bluetoothCharacteristicTeamA = service?.getCharacteristic(UUID.fromString(teamAScoreCharacteristic))!!
-                //bluetoothCharacteristicTeamB = service?.getCharacteristic(UUID.fromString(teamBScoreCharacteristic))!!
-                //writeCharacteristic(1, 0, bluetoothCharacteristicTeamA)
-                //writeCharacteristic(1, 0, bluetoothCharacteristicTeamB)
+                bluetoothCharacteristicCommand = service?.getCharacteristic(UUID.fromString(commandCharacteristic))!!
             } else {
-                Log.d("Gabi", "Failed to discover services.");
+                Log.d("BLE debug", "Failed to discover services.");
             }
         } // Implement other necessary callback methods here
     }

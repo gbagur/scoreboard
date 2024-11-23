@@ -115,30 +115,34 @@
                 android:layout_height="match_parent"
                 android:layout_weight="1" />
 
-            <ImageButton
-                android:id="@+id/button_AP"
+            <EditText
+                android:id="@+id/textbox_sideA"
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:backgroundTint="@color/buttons"
-                android:contentDescription="Up"
-                android:src="@drawable/arrow_up"
-                app:tint="#000000" />
+                android:textSize="38sp"
+                android:textAlignment="center"
+                android:text="0"
+                android:textColor="@color/buttons"
+                android:padding="1dp"
+                />
 
             <Space
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1" />
 
-            <ImageButton
-                android:id="@+id/button_BP"
+            <EditText
+                android:id="@+id/textbox_sideB"
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:backgroundTint="@color/buttons"
-                android:contentDescription="Up"
-                android:src="@drawable/arrow_up"
-                app:tint="#000000" />
+                android:textSize="38sp"
+                android:textAlignment="center"
+                android:text="0"
+                android:textColor="@color/buttons"
+                android:padding="1dp"
+                />
 
             <Space
                 android:layout_width="0dp"
