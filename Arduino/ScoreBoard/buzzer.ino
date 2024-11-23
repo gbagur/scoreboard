@@ -93,38 +93,44 @@ void buzzerPlayMelodyEndGame() {
 
 void buzzerDucks1() {
   int dur = 170;
-
+  if (soundOn == LOW) {
+    clear; delay(500); set; delay(500); clear; delay(500); set; delay(500); clear; delay(500); set; delay(500);
+    return;
+  }
   set
-  playNote(NOTE_7, dur);
+  playNoteAlways(NOTE_7, dur);
   clear
-  playNote(NOTE_5, dur);
+  playNoteAlways(NOTE_5, dur);
   set
-  playNote(NOTE_4, dur);
+  playNoteAlways(NOTE_4, dur);
   clear
-  playNote(NOTE_3, dur);
+  playNoteAlways(NOTE_3, dur);
     set
-  playNote(NOTE_2, dur);
+  playNoteAlways(NOTE_2, dur);
   clear
-  playNote(NOTE_1, dur);
+  playNoteAlways(NOTE_1, dur);
 }
 
 void buzzerDucks2() {
   int dur = 160;
-
+  if (soundOn == LOW) {
+    clear; delay(500); set; delay(500); clear; delay(500); set; delay(500); clear; delay(500); set; 
+    return;
+  }
   set
-  playNote(NOTE_1, dur);
+  playNoteAlways(NOTE_1, dur);
   clear
-  playNote(NOTE_2, dur);
+  playNoteAlways(NOTE_2, dur);
   set
-  playNote(NOTE_3, dur);
+  playNoteAlways(NOTE_3, dur);
   clear
-  playNote(NOTE_4, dur);
-    set
-  playNote(NOTE_5, dur);
-  clear
-  playNote(NOTE_6, dur);
+  playNoteAlways(NOTE_4, dur);
   set
-  playNote(NOTE_7, dur*2);
+  playNoteAlways(NOTE_5, dur);
+  clear
+  playNoteAlways(NOTE_6, dur);
+  set
+  playNoteAlways(NOTE_7, dur*2);
 }
 
 void buzzerPlayMelodyMario() {
@@ -225,6 +231,7 @@ void buzzerPlayMelodyMario() {
 }
 
 void playNote(int frequency, int duration) {
+  if (soundOn == LOW) {ledsBlink(); return;}
   if (frequency == NOTE_REST) {
     delay(duration);
   } else {
@@ -233,23 +240,45 @@ void playNote(int frequency, int duration) {
   }
 }
 
+void playNoteAlways(int frequency, int duration) {
+  if (frequency == NOTE_REST) {
+    delay(duration);
+  } else {
+  tone(BUZZER_PIN, frequency, duration);
+  delay(5); // Add a small delay to distinguish between notes
+  }
+}
+
+
 void buzzerClick() {
   playNote(NOTE_1, 30);
   playNote(NOTE_7, 30);
 }
 
+void buzzerSoundOn() {
+  playNoteAlways(NOTE_1, 200);
+  playNoteAlways(NOTE_7, 400);
+}
+
+
+void buzzerSoundOff ()  {
+  playNoteAlways(NOTE_7, 200);
+  playNoteAlways(NOTE_1, 400);
+}
+
+
 void buzzerBLEconnected() {
-  playNote(NOTE_1, 50);
-  playNote(NOTE_3, 50);
-  playNote(NOTE_5, 50);
-  playNote(NOTE_7, 50);
+  playNoteAlways(NOTE_1, 50);
+  playNoteAlways(NOTE_3, 50);
+  playNoteAlways(NOTE_5, 50);
+  playNoteAlways(NOTE_7, 50);
 }
 
 void buzzerBLEdisconnected() {
-  playNote(NOTE_7, 50);
-  playNote(NOTE_5, 50);
-  playNote(NOTE_3, 50);
-  playNote(NOTE_1, 50);
+  playNoteAlways(NOTE_7, 50);
+  playNoteAlways(NOTE_5, 50);
+  playNoteAlways(NOTE_3, 50);
+  playNoteAlways(NOTE_1, 50);
 }
 
 void buzzerStartMelody() {
@@ -273,3 +302,12 @@ void playRest(int duration) {
   delay(duration);
 }
 
+void ledsBlink(void) {
+    LedsON = !LedsON; scoreSet();
+    delay(25);
+    LedsON = !LedsON; scoreSet();
+    delay(25);
+    LedsON = !LedsON; scoreSet();
+    delay(25);
+    LedsON = !LedsON; scoreSet();
+}

@@ -9,6 +9,8 @@ int seg[4][7] = { {14, 25, 24, 35, 4, 8, 10},
                   {16, 33, 34, 11, 29, 31, 17}
                 };
 
+#define serial_data_pin     29
+#define serial_clock_pin    11
 
 int digit_matrix[11][7] = {
         {1, 1, 1, 1, 1, 1, 0}, // 0
@@ -33,15 +35,32 @@ void segmentInit(void) {
   }
 }
 
+void openDrainSet(int pin, int value) {
+  //digitalWrite(pin, LOW);
+  if (value == 1) pinMode(pin, OUTPUT);
+  if (value == 0) pinMode(pin, INPUT);
+}
+
 void segmentSet(int segment_pin, int value) {
-  if (value == 1) pinMode(segment_pin, OUTPUT);
-  if (value == 0) pinMode(segment_pin, INPUT);
+  openDrainSet(segment_pin, OUTPUT);
 }
 
 void digitSet(int digit, int number) {
   if (digit <0 || digit >4) return;
-  for (int segment_nr=0;segment_nr<7;segment_nr++) {
-    segmentSet(seg[digit][segment_nr], digit_matrix[number][segment_nr]);
+  if (digit<3) {
+    for (int segment_nr=0;segment_nr<7;segment_nr++) {
+      segmentSet(seg[digit][segment_nr], digit_matrix[number][segment_nr]);
+    }
+  }
+  else if (digit==3) {
+    //shift register
+    for (int bit=0;bit<8;bit++) {
+      openDrainSet(serial_data_pin, bit);
+      openDrainSet(serial_clock_pin, 0);
+      delay(100);       
+      openDrainSet(serial_clock_pin, 1);
+      delay(100);       
+    }    
   }
 }
 

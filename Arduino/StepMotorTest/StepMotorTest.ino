@@ -5,12 +5,6 @@ const int dirPin = 12;
 // Define the steps per revolution for your stepper motor
 const int stepsPerRevolution = 200;  // Adjust this value according to your motor specifications
 
-// UART buffer
-const int BUFFER_SIZE = 50; // Define a buffer size for incoming serial data
-char inputBuffer[BUFFER_SIZE]; // Buffer to store the incoming serial data
-int bufferIndex = 0; // Index to keep track of the buffer position
-
-
 void setup() {
   // initialize digital pin LED_BUILTIN as an output.
   pinMode(LED_BUILTIN, OUTPUT);
@@ -54,9 +48,9 @@ void stepMotor (int direction, int angle, int speed) {
     // Generate a step pulse
     digitalWrite(stepPin, HIGH);
     //digitalWrite(LED_BUILTIN, HIGH);
-    delayMicroseconds(1000/speed);  // Adjust delay for desired speed
+    delayMicroseconds(10000/speed);  // Adjust delay for desired speed
     digitalWrite(stepPin, LOW);
     //digitalWrite(LED_BUILTIN, LOW);
-    delayMicroseconds(1000/speed);  // Adjust delay for desired speed
+    delayMicroseconds(10000/speed);  // Adjust delay for desired speed
   }
 }
