@@ -15,7 +15,7 @@
 #define CMD10_RESET_COUNTERS  10
 #define CMD11_DISPLAY_ON_OFF  11
 #define CMD12_CHANGE_SIDES    12
-#define CMDxx_SOUND_ON_OFF    13
+#define CMD13_SOUND_ON_OFF    13
 
 #define check_side_change() {if ((scoreSideLeft+scoreSideRight)%7==0 && (scoreSideLeft+scoreSideRight>0)) changeSideCall();}
 
@@ -31,6 +31,7 @@ BLEUnsignedIntCharacteristic commandCharacteristic("81044b7b-7fb3-41e1-9127-a873
 int scoreSideLeft;
 int scoreSideRight;
 int LedsON = HIGH;
+int soundOn = HIGH;
 
 // the setup function runs once when you press reset or power the board
 void setup() {
@@ -44,7 +45,7 @@ void setup() {
   digitalWrite(LED_BUILTIN, HIGH);  // turn the LED on (HIGH is the voltage level)
   // begin initialization
   if (!BLE.begin()) {
-    Serial.println("Starting BLE failed!");
+    
     while (1);
   }
 
@@ -73,8 +74,10 @@ void setup() {
   //sideTeamA = 1;
   scoreSideLeft = 0;
   scoreSideRight = 0;
-  LedsON = HIGH;
-  scoreSet();
+  digitSet(0,0);
+  digitSet(1,1);
+  digitSet(2,2);
+  digitSet(3,3);
   buzzerStartMelody();
   LedsON = LOW;
   scoreSet();
@@ -94,31 +97,15 @@ void loop() {
     if (command == 'a') {
       //buzzerPlayMelodyEndGame();
       playNote(note, 1000);
-      note = note + 50;
-      Serial.print("Freq: ");
-      Serial.println(note);
+      am_hal_sysctrl_sleep(AM_HAL_SYSCTRL_SLEEP_DEEP);
     }
     if (command == 'b') {
       playNote(note, 1000);
-      note = note - 50;
-      Serial.print("Freq: ");
-      Serial.println(note);
-      //buzzerChangeSide();
+      am_hal_sysctrl_sleep(AM_HAL_SYSCTRL_SLEEP_NORMAL);
     }
     if (command == 'c') {
-      const int pwmPin = 18; // Choose any PWM pin
-      const int sinResolution = 256; // Number of points on the sine wave
-      const float sinMax = 255.0; // Maximum value of the sine wave
-      int dutyCycle;
-      for (int i = 0; i<1200; i++) {
-        dutyCycle = (sin(i * 2 * PI / sinResolution) + 1) * sinMax / 2;
-        analogWrite(pwmPin, dutyCycle);
-        delay(5); // Adjust delay for desired frequency
-      }
-      //digitSet(0, 3);
-      //buzzerRichMan();
-      //analogWrite(buzzerPin, 0);
-      
+      LedsON = not (LedsON);
+      scoreSet();
     }
   }  
   
@@ -167,6 +154,10 @@ void loop() {
         case CMD12_CHANGE_SIDES:                 
           changeSideCall();
           break;
+        case CMD13_SOUND_ON_OFF:
+          soundOn = not (soundOn);
+          if (soundOn == LOW) buzzerSoundOff();
+          if (soundOn == HIGH) buzzerSoundOn();
         default:
           break;
         }
@@ -198,6 +189,6 @@ void changeSideCall(void) {
   int temp = scoreSideLeft;
   scoreSideLeft = scoreSideRight;
   scoreSideRight = temp;
-  scoreSet();
+ 
   buzzerDucks2();
 };
