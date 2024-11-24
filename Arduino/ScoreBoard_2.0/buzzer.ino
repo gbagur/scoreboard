@@ -69,11 +69,8 @@
 void buzzerInit(){
   // Initialize the buzzer pin as an output
   pinMode(BUZZER_PIN, OUTPUT);
-  delay(1000);
-  digitalWrite(BUZZER_PIN, HIGH);
-  delay(1000);
-  digitalWrite(BUZZER_PIN, LOW);
 }
+
 void buzzerPlayMelodyEndGame() {
   // Play Twinkle Twinkle Little Star
   playNote(NOTE_C4, DURATION_QUARTER);

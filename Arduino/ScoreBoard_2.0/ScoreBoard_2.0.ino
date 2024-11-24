@@ -30,10 +30,6 @@ int scoreSideRight;
 int LedsON = HIGH;
 int soundOn = HIGH;
 
-void scoreSet() {
-  set_score(scoreSideLeft, scoreSideRight);
-}
-
 // the setup function runs once when you press reset or power the board
 void setup() {
   leds_setup();       // 4 x 7-segments 
@@ -219,4 +215,9 @@ void commandCharacteristicWritten(BLEDevice central, BLECharacteristic character
     scoreSet();
     Serial.println("New score -> Team A: " + String(scoreSideLeft) + "   Team B: "+ String(scoreSideRight));
     if (command==CMD_SIDE_A_INC || command==CMD_SIDE_B_INC) check_side_change();
+}
+
+void scoreSet() {
+  set_score(scoreSideLeft, scoreSideRight);
+  Serial.println("* Team A: " + String(scoreSideLeft) + "   Team B: "+ String(scoreSideRight));
 }
