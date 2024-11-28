@@ -14,6 +14,8 @@
 #define CMD_SIDE_B_DEC      4
 #define CMD_SIDE_A_SET      5
 #define CMD_SIDE_B_SET      6
+#define CMD_DISPLAY_ON      7
+#define CMD_DISPLAY_OFF     8
 #define CMD_RESET_COUNTERS  10
 #define CMD_DISPLAY_ON_OFF  11
 #define CMD_CHANGE_SIDES    12
@@ -72,14 +74,15 @@ void setup() {
   Serial.println(BLE.address());
   Serial.println("Setup finished.");
   
-  //sideTeamA = 1;
-  scoreSideLeft = 0;
-  scoreSideRight = 0;
+  scoreSideLeft = 88;
+  scoreSideRight = 88;
   LedsON = HIGH;
   scoreSet();
-  //buzzerStartMelody();
+  buzzerStartMelody();
   buzzerClick();
   LedsON = LOW;
+  scoreSideLeft = 0;
+  scoreSideRight = 0;
   scoreSet();
 
   
@@ -198,6 +201,12 @@ void commandCharacteristicWritten(BLEDevice central, BLECharacteristic character
     case CMD_RESET_COUNTERS:
       scoreSideLeft = 0;
       scoreSideRight = 0;
+      break;
+    case CMD_DISPLAY_ON:
+      LedsON = HIGH;
+      break;
+    case CMD_DISPLAY_OFF:
+      LedsON = LOW;
       break;
     case CMD_DISPLAY_ON_OFF:
       LedsON = !LedsON;
