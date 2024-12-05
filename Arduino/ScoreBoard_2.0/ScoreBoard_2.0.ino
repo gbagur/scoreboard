@@ -78,7 +78,8 @@ void setup() {
   scoreSideRight = 88;
   LedsON = HIGH;
   scoreSet();
-  buzzerStartMelody();
+  //buzzerStartMelody();
+  buzzerClick();
   buzzerClick();
   LedsON = LOW;
   scoreSideLeft = 0;
@@ -88,19 +89,19 @@ void setup() {
   
 }
 
-unsigned long previousMillis = 0;  // Stores the last time the task was executed
-const long interval = 1000;        // Interval at which to perform the task (1 second)
-
 int state = 0;
 
 void loop() {
   // listen for BLE peripherals to connect:
   static int note = 400;
-
+  int analogValue;
+  float voltage;
+  float charge;
   BLE.poll();
 
   if (Serial.available() > 0) { // Check if data is available to read
     char command = Serial.read(); // Read the incoming command
+    if (command == ' ') return;
     Serial.print("Commando recibido: ");
     Serial.println(command);
     if (command == 'a') {
@@ -127,11 +128,26 @@ void loop() {
         analogWrite(pwmPin, dutyCycle);
         delay(5); // Adjust delay for desired frequency
       }
+    }  
+    if (command == 'd') {
+      // Print the value to the Serial Monitor
+      analogValue = analog_read();
+      voltage = analogToVoltage(analogValue);
+      charge = voltageToCharge(voltage);
+      Serial.print("Analog value on pin 35: ");
+      Serial.println(analogValue);
+      Serial.print("Voltage: ");
+      Serial.print(voltage);
+      Serial.println(" V");
+      Serial.print("Charge: ");
+      Serial.print(charge);
+      Serial.println(" %");
+    }
       //digitSet(0, 3);
       //buzzerRichMan();
       //analogWrite(buzzerPin, 0);
       
-    }
+    
   }  
   
 }
