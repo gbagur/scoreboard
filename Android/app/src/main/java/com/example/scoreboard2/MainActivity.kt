@@ -19,6 +19,7 @@ import androidx.core.content.ContextCompat
 import java.util.UUID
 
 
+const val SCOREBOARD_MAC = "C0:C3:31:38:13:51"    // board 3
 
 class MainActivity : AppCompatActivity() {
     private val REQUEST_BLUETOOTH_CONNECT = 1
@@ -140,7 +141,7 @@ class MainActivity : AppCompatActivity() {
         bluetoothDevice =
 
             //bluetoothAdapter.getRemoteDevice("C0:89:C0:6B:AD:4B") // Replace with your device's MAC address
-            bluetoothAdapter.getRemoteDevice("C0:C3:45:37:24:51") // Replace with your device's MAC address
+            bluetoothAdapter.getRemoteDevice(SCOREBOARD_MAC) // Replace with your device's MAC address
         if (bluetoothDevice == null) {
             Log.d("Gabi", "bluetoothDevice not found")
         } else {
