@@ -20,6 +20,10 @@
 #define CMD_DISPLAY_ON_OFF  11
 #define CMD_CHANGE_SIDES    12
 #define CMD_SOUND_ON_OFF    13
+#define CMD_SOUND_ON        14
+#define CMD_SOUND_OFF       15
+
+
 
 #define check_side_change() {if ((scoreSideLeft+scoreSideRight)%7==0 && (scoreSideLeft+scoreSideRight>0)) changeSideCall();}
 
@@ -30,7 +34,7 @@ BLEUnsignedIntCharacteristic commandCharacteristic("81044b7b-7fb3-41e1-9127-a873
 int scoreSideLeft;
 int scoreSideRight;
 int LedsON = HIGH;
-int soundOn = HIGH;
+int soundOn = LOW;
 
 // the setup function runs once when you press reset or power the board
 void setup() {
@@ -214,10 +218,19 @@ void commandCharacteristicWritten(BLEDevice central, BLECharacteristic character
     case CMD_CHANGE_SIDES:                 
       changeSideCall();
       break;
+    case CMD_SOUND_ON:
+      soundOn = HIGH;
+      buzzerSoundOn();      
+      break;
+    case CMD_SOUND_OFF:
+      soundOn = LOW;
+      buzzerSoundOff();
+      break;
     case CMD_SOUND_ON_OFF:
       soundOn = not (soundOn);
       if (soundOn == LOW) buzzerSoundOff();
       if (soundOn == HIGH) buzzerSoundOn();      
+      break;
     default:
       break;
     }
