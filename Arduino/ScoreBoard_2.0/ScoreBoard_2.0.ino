@@ -82,59 +82,75 @@ void setup() {
   scoreSideRight = 88;
   LedsON = HIGH;
   scoreSet();
-  buzzerStartMelody();
+  //buzzerStartMelody();
   buzzerClick();
   LedsON = LOW;
   scoreSideLeft = 0;
   scoreSideRight = 0;
   scoreSet();
-
-  
 }
 
-unsigned long previousMillis = 0;  // Stores the last time the task was executed
-const long interval = 1000;        // Interval at which to perform the task (1 second)
-
-int state = 0;
+int state = 0;  // 0 - disconnected ; 1 - connected
 
 void loop() {
   // listen for BLE peripherals to connect:
   static int note = 400;
-
+  int analogValue;
+  float voltage;
+  float charge;
+  int bat_ready;
   BLE.poll();
 
   if (Serial.available() > 0) { // Check if data is available to read
     char command = Serial.read(); // Read the incoming command
+    if (command == ' ' || command == '\n' || command == '\r') return;
     Serial.print("Commando recibido: ");
     Serial.println(command);
-    if (command == 'a') {
-      //buzzerPlayMelodyEndGame();
-      playNote(note, 1000);
-      note = note + 50;
-      Serial.print("Freq: ");
-      Serial.println(note);
-    }
-    if (command == 'b') {
-      playNote(note, 1000);
-      note = note - 50;
-      Serial.print("Freq: ");
-      Serial.println(note);
-      //buzzerChangeSide();
-    }
-    if (command == 'c') {
-      const int pwmPin = 18; // Choose any PWM pin
-      const int sinResolution = 256; // Number of points on the sine wave
-      const float sinMax = 255.0; // Maximum value of the sine wave
-      int dutyCycle;
-      for (int i = 0; i<1200; i++) {
-        dutyCycle = (sin(i * 2 * PI / sinResolution) + 1) * sinMax / 2;
-        analogWrite(pwmPin, dutyCycle);
-        delay(5); // Adjust delay for desired frequency
-      }
-      //digitSet(0, 3);
-      //buzzerRichMan();
-      //analogWrite(buzzerPin, 0);
-      
+    switch (command)
+    {
+      case 'a':
+        //buzzerPlayMelodyEndGame();
+        playNote(note, 1000);
+        note = note + 50;
+        Serial.print("Freq: ");
+        Serial.println(note);
+        break;    
+      case 'b':
+        playNote(note, 1000);
+        note = note - 50;
+        Serial.print("Freq: ");
+        Serial.println(note);
+        break;
+      case 'c': 
+        {
+          const int pwmPin = 18; // Choose any PWM pin
+          const int sinResolution = 256; // Number of points on the sine wave
+          const float sinMax = 255.0; // Maximum value of the sine wave
+          int dutyCycle;
+          for (int i = 0; i<1200; i++) {
+            dutyCycle = (sin(i * 2 * PI / sinResolution) + 1) * sinMax / 2;
+            analogWrite(pwmPin, dutyCycle);
+            delay(5); // Adjust delay for desired frequency
+          }
+        }
+        break;  
+      case 'd':
+        analogValue = analog_read();
+        voltage = analogToVoltage(analogValue);
+        charge = voltageToCharge(voltage);
+        Serial.print("Analog value on pin 35: ");
+        Serial.println(analogValue);
+        Serial.print("Voltage: ");
+        Serial.print(voltage);
+        Serial.println(" V");
+        Serial.print("Charge: ");
+        Serial.print(charge);
+        Serial.println(" %");
+        Serial.print("Charge complete: ");
+        Serial.println(isBatteryReady());
+        break;
+      default: 
+        break;
     }
   }  
   
