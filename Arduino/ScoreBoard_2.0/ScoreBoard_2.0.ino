@@ -7,6 +7,7 @@
 #include <ArduinoBLE.h> //http://librarymanager/All#ArduinoBLE_IoT
 #include <math.h>
 
+
 // List of commands
 #define CMD_SIDE_A_INC      1
 #define CMD_SIDE_A_DEC      2
@@ -23,6 +24,8 @@
 #define CMD_SOUND_ON        14
 #define CMD_SOUND_OFF       15
 
+#define INPUT_SWITCH_PIN    8
+
 
 
 #define check_side_change() {if ((scoreSideLeft+scoreSideRight)%7==0 && (scoreSideLeft+scoreSideRight>0)) changeSideCall();}
@@ -36,12 +39,21 @@ int scoreSideRight;
 int LedsON = HIGH;
 int soundOn = LOW;
 
+
+void wakeUpISR() {
+  Serial.println("Button pressed.");
+}
+
 // the setup function runs once when you press reset or power the board
 void setup() {
   leds_setup();       // 4 x 7-segments 
   power_setup();
   led_driver_setup();
   buzzerInit();
+  
+  // set switch button input to interruption
+  pinMode(INPUT_SWITCH_PIN, INPUT);
+  attachInterrupt(digitalPinToInterrupt(INPUT_SWITCH_PIN), wakeUpISR, FALLING);
 
   Serial.begin(115200);
   while (!Serial);
@@ -99,7 +111,19 @@ void loop() {
   float voltage;
   float charge;
   int bat_ready;
+  static int input_pin_value_old = HIGH;
+  int input_pin_value;
+
+  // input_pin_value = digitalRead(INPUT_SWITCH_PIN);
+  // if (input_pin_value != input_pin_value_old) {
+  //   input_pin_value_old = input_pin_value;
+  //   Serial.print("Input pin changed to: ");
+  //   Serial.println(input_pin_value);
+  // }
+  
   BLE.poll();
+
+  
 
   if (Serial.available() > 0) { // Check if data is available to read
     char command = Serial.read(); // Read the incoming command
@@ -149,6 +173,28 @@ void loop() {
         Serial.print("Charge complete: ");
         Serial.println(isBatteryReady());
         break;
+      case 'e':
+        Serial.println("Going to low power.");
+        //am_hal_pwrctrl_low_power_init();
+        Serial.println("1");
+        //disablePeripherals();
+        //configureMemories();
+        //configureStimer();
+        //dumpRegs();
+        
+        //disableGpios();
+        // for (int i = 0; i <= 49; i++) {
+        //   am_hal_gpio_pinconfig(i, g_AM_HAL_GPIO_DISABLE);
+        // }
+        Serial.println("2");
+        // disable serial interface
+        delay(100);
+        Serial1.end();
+        Serial.println("3");
+        am_hal_pwrctrl_periph_disable(AM_HAL_PWRCTRL_PERIPH_UART0);
+
+        // go to deep sleep
+        am_hal_sysctrl_sleep(AM_HAL_SYSCTRL_SLEEP_DEEP);
       default: 
         break;
     }
