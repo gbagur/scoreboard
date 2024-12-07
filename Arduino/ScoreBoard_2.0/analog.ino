@@ -8,7 +8,6 @@ void analog_setup() {
 
 int analog_read () {
   int a = analogRead(ANALOG_PIN);
-  
   return a;
 }
 
@@ -18,14 +17,22 @@ float analogToVoltage(int raw_value) {
 
 float voltageToCharge(float voltage) {
   float charge;
-  charge = 29.41 * voltage - 264.68;  // convert Voltage to Battery charge 
+  float v_low = 9;
+  static float v_high = 12.4;
+  float m;
+  m = 100 / (v_high - v_low);
+  charge = m * (voltage - v_low);
   if (charge < 0) charge = 0;
-  if (charge > 100) charge = 100;
+  if (charge > 100) {
+    Serial.println("High_voltage_updated:");
+    Serial.print("Old v_high: ");
+    Serial.print(v_high);
+    Serial.println(" V");
+    v_high = voltage;
+    Serial.print("New v_high: ");
+    Serial.print(v_high);
+    Serial.println(" V");
+    charge = 100;
+  }
   return charge;
 }
-
-
-// float voltage_read () {
-//   return 0.15407854984894259818731117824773 * analog_read()/;
-
-// }
