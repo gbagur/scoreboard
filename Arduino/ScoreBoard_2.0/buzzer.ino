@@ -90,8 +90,8 @@ void buzzerPlayMelodyEndGame() {
   playNote(NOTE_C4, DURATION_HALF);
 }
 
-#define set      LedsON = HIGH; scoreSet();
-#define clear    LedsON = LOW; scoreSet();
+#define set      LedsON = true; scoreSet();
+#define clear    LedsON = false; scoreSet();
 
 void buzzerDucks1() {
   int dur = 170;

@@ -54,7 +54,7 @@ uint32_t score2binary(uint16_t side_left_score, uint16_t side_right_score) {
     uint8_t unit_right = digit_code[side_right_score % 10];
     uint8_t dec_right = digit_code[side_right_score / 10];
     if (dec_right == digit_code[0]) dec_right = digit_code[10];
-    Serial.println("scores ---> " + String(dec_left) + String(unit_left) + " " + String(dec_right) + String(unit_right));
+    //Serial.println("scores ---> " + String(dec_left) + String(unit_left) + " " + String(dec_right) + String(unit_right));
     return (unit_right << 24) | (dec_right << 16) | (unit_left << 8) | (dec_left);
 }
 
@@ -83,7 +83,7 @@ void score_draw (uint32_t binary) {
 
 void set_score(uint16_t side_left_score, uint16_t side_right_score) {
   uint32_t score_binary = score2binary(side_left_score, side_right_score);
-  Serial.println("*score_binary: " + String(score_binary));
+  //Serial.println("*score_binary: " + String(score_binary));
   if (LedsON == LOW) {
       led_driver_turn_all_off();
   } else {
