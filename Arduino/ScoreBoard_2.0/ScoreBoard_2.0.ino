@@ -7,6 +7,9 @@
 #include <math.h>
 #include "leds.h"
 
+// button in
+#define BUTTON_IN           8
+
 // List of commands
 #define CMD_SIDE_A_INC      1
 #define CMD_SIDE_A_DEC      2
@@ -26,6 +29,11 @@
 BLEService scoreService("45340637-dea7-48d7-9262-5f392e4317c6");
 BLEUnsignedIntCharacteristic commandCharacteristic("81044b7b-7fb3-41e1-9127-a8730afd24ff", BLERead | BLEWrite);
 
+int game_mode = 1;  // 1 - volleyball 2-tennis
+#define LAST_GAME_MODE  2
+#define GAME_MODE_VOLLEYBALL  1
+#define GAME_MODE_TENNIS      2
+#define TENNIS_SCORE_ADVANTAGE 100
 int scoreSideLeft;
 int scoreSideRight;
 int LedsON = true;
@@ -34,6 +42,7 @@ bool changeSideEnabled = false;
 
 // the setup function runs once when you press reset or power the board
 void setup() {
+  pinMode(BUTTON_IN, INPUT);
   leds_setup();       // 4 x 7-segments 
   rgbled(RGBLED_BLUE);
   power_setup();
@@ -86,18 +95,50 @@ void setup() {
   scoreSideLeft = 0;
   scoreSideRight = 0;
   scoreSet();
-  rgbled(RGBLED_RED);
 }
 
 int state = 0;  // 0 - disconnected ; 1 - connected
 
 void loop() {
+  static int button_in_pre;
+  int button_in;
   static int note = 400;
   int analogValue;
   float voltage;
   float charge;
   int bat_ready;
+  unsigned long currentTime = millis();
+  static unsigned long lastCheckTime = 0;
 
+  // Button in
+  
+  button_in = digitalRead(BUTTON_IN);
+  if (button_in == LOW && button_in_pre == HIGH) {
+  #ifdef DEBUG
+    Serial.println("Button pressed.");
+  #endif
+    game_mode = game_mode + 1;
+    if (game_mode > LAST_GAME_MODE) game_mode = 1;
+    digitalWrite(D_LED1, HIGH);
+    if (game_mode == 2) digitalWrite(D_LED2, HIGH);
+    if (game_mode == 3) digitalWrite(D_LED3, HIGH);
+    buzzerClick();
+    delay(700);
+    digitalWrite(D_LED1, LOW);
+    digitalWrite(D_LED2, LOW);
+    digitalWrite(D_LED3, LOW);
+  }
+  button_in_pre = button_in;
+
+  // Power indication update 
+  if ((currentTime - lastCheckTime) > 1000) {
+      update_battery_indication();
+      lastCheckTime = currentTime;
+  }
+  
+  
+
+  // Remote control RF command reception 
   int rc_key_pressed = rc_check();
   if (rc_key_pressed) {
     #ifdef DEBUG
@@ -107,35 +148,62 @@ void loop() {
     buzzerClick();
   }
   
-  switch (rc_key_pressed) {
-    case 1:
-      if (scoreSideLeft < 99) scoreSideLeft++;
-      LedsON = true;
-      break;
-    case 3:
-      if (scoreSideLeft > 0) scoreSideLeft--;
-      LedsON = true;
-      break;
-    case 2:
-      if (scoreSideRight < 99) scoreSideRight++;
-      LedsON = true;
-      break;
-    case 4:
-      if (scoreSideRight > 0) scoreSideRight--;
-      LedsON = true;
-      break;
-    case 7:
-      changeSideEnabled = false;
-      scoreSideLeft = 0;
-      scoreSideRight = 0;
-    case 8:
-      changeSideEnabled = true;
-      scoreSideLeft = 0;
-      scoreSideRight = 0;
-    default: 
-      break;
+  if (game_mode == GAME_MODE_VOLLEYBALL) {
+    switch (rc_key_pressed) {
+      case 1:
+        if (scoreSideLeft < 99) scoreSideLeft++;
+        break;
+      case 3:
+        if (scoreSideLeft > 0) scoreSideLeft--;
+        break;
+      case 2:
+        if (scoreSideRight < 99) scoreSideRight++;
+        break;
+      case 4:
+        if (scoreSideRight > 0) scoreSideRight--;
+        break;
+      case 7:
+        changeSideEnabled = false;
+        scoreSideLeft = 0;
+        scoreSideRight = 0;
+        break;
+      case 8:
+        changeSideEnabled = true;
+        scoreSideLeft = 0;
+        scoreSideRight = 0;
+      default: 
+        break;
+    }
   }
+
+  if (game_mode == GAME_MODE_TENNIS) {
+    switch (rc_key_pressed) {
+      case 1:
+        increase_tennis_score(&scoreSideLeft);
+        break;
+      case 3:
+        decrease_tennis_score(&scoreSideLeft);
+        break;
+      case 2:
+        increase_tennis_score(&scoreSideRight);
+        break;
+      case 4:
+        decrease_tennis_score(&scoreSideRight);
+        break;
+      case 7:
+        scoreSideLeft = 0;
+        scoreSideRight = 0;
+        break;
+      case 8:
+        scoreSideLeft = 0;
+        scoreSideRight = 0;
+      default: 
+        break;
+    }
+  }
+
   if (rc_key_pressed != 0) {
+    LedsON = true;
     scoreSet();
     #ifdef DEBUG
       Serial.println("New score -> Team A: " + String(scoreSideLeft) + "   Team B: "+ String(scoreSideRight));
@@ -172,41 +240,35 @@ void loop() {
         #endif
         break;
       case 'c': 
-        {
-          const int pwmPin = 18;
-          const int sinResolution = 256;
-          const float sinMax = 255.0;
-          int dutyCycle;
-          for (int i = 0; i<1200; i++) {
-            dutyCycle = (sin(i * 2 * PI / sinResolution) + 1) * sinMax / 2;
-            analogWrite(pwmPin, dutyCycle);
-            delay(5);
-          }
-        }
+        // {
+        //   const int pwmPin = 18;
+        //   const int sinResolution = 256;
+        //   const float sinMax = 255.0;
+        //   int dutyCycle;
+        //   for (int i = 0; i<1200; i++) {
+        //     dutyCycle = (sin(i * 2 * PI / sinResolution) + 1) * sinMax / 2;
+        //     analogWrite(pwmPin, dutyCycle);
+        //     delay(5);
+        //   }
+        // }
         break;  
       case 'd':
         analogValue = analog_read();
         voltage = analogToVoltage(analogValue);
         charge = voltageToCharge(voltage);
-        #ifdef DEBUG
-          Serial.print("Analog value on pin 35: ");
-          Serial.println(analogValue);
-          Serial.print("Voltage: ");
-          Serial.print(voltage);
-          Serial.println(" V");
-          Serial.print("Charge: ");
-          Serial.print(charge);
-          Serial.println(" %");
-          Serial.print("Charge complete: ");
-          Serial.println(isBatteryReady());
-        #endif
+        Serial.print("Analog value on pin 35: ");
+        Serial.println(analogValue);
+        Serial.print("Voltage: ");
+        Serial.print(voltage);
+        Serial.println(" V");
+        Serial.print("Charge: ");
+        Serial.print(charge);
+        Serial.println(" %");
+        Serial.print("Charge complete: ");
+        Serial.println(isBatteryReady());
         break;
       default: 
         break;
-    scoreSet();
-    #ifdef DEBUG
-      Serial.println("New score -> Team A: " + String(scoreSideLeft) + "   Team B: "+ String(scoreSideRight));
-    #endif
     }
   }  
 }
@@ -325,8 +387,23 @@ void scoreSet() {
 }
 
 void check_side_change() {
-    if (changeSideEnabled) {
+    if (changeSideEnabled && (game_mode == GAME_MODE_VOLLEYBALL)) {
         if ((scoreSideLeft+scoreSideRight)%7==0 && (scoreSideLeft+scoreSideRight>0)) 
         changeSideCall();
     }
+}
+
+
+void increase_tennis_score ( int * score) {
+  if (*score == 0) *score = 15;
+  else if (*score == 15) *score = 30;
+  else if (*score == 30) *score = 40;
+  else if (*score == 40) *score = TENNIS_SCORE_ADVANTAGE;
+}
+
+void decrease_tennis_score (int * score) {
+  if (*score == 15) *score = 0;
+  else if (*score == 30) *score = 15;
+  else if (*score == 40) *score = 30;
+  else if (*score == TENNIS_SCORE_ADVANTAGE) *score = 40;
 }

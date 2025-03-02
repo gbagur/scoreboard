@@ -10,7 +10,7 @@ const int latchPin_right = 10; // LE/: Latch Enable
 const int enablePin_right = 9;  // !OE: Output Enable
 
 // Digit codes for 7-segment displays 
-uint8_t digit_code[11] = {
+uint8_t digit_code[13] = {
   //  XGFEDCBA
     0b00111111, // 0
     0b00000110, // 1
@@ -22,8 +22,13 @@ uint8_t digit_code[11] = {
     0b00000111, // 7
     0b01111111, // 8
     0b01101111, // 9
-    0b00000000  // OFF
+    0b00000000,  // 10 OFF
+    0b01110111,  // 11 'A'
+    0b01011110   // 12 'd'
 };
+
+#define LITERAL_A 11
+#define LITERAL_D 12
 
 void led_driver_setup() {
     pinMode(dataPin, OUTPUT);
@@ -44,16 +49,30 @@ void led_driver_setup() {
 }
 
 uint32_t score2binary(uint16_t side_left_score, uint16_t side_right_score) {
-    if (side_left_score > 99) side_left_score = 99; // Limit score to 99
-    if (side_left_score < 0) side_left_score = 0; // Limit score to 99
-    if (side_right_score > 99) side_right_score = 99; // Limit score to 99
-    if (side_right_score < 0) side_right_score = 0; // Limit score to 99
-    uint8_t unit_left = digit_code[side_left_score % 10];
-    uint8_t dec_left = digit_code[side_left_score / 10];
-    if (dec_left == digit_code[0]) dec_left = digit_code[10];
-    uint8_t unit_right = digit_code[side_right_score % 10];
-    uint8_t dec_right = digit_code[side_right_score / 10];
-    if (dec_right == digit_code[0]) dec_right = digit_code[10];
+    uint8_t unit_left;
+    uint8_t dec_left;
+    uint8_t unit_right;
+    uint8_t dec_right;
+    if (side_left_score > 100) side_left_score = 101; // Limit score 
+    if (side_left_score < 0) side_left_score = 0; // Limit score 
+    if (side_right_score > 100) side_right_score = 101; // Limit score 
+    if (side_right_score < 0) side_right_score = 0; // Limit score
+    if (side_left_score == 100) {
+      unit_left = digit_code[LITERAL_D];
+      dec_left = digit_code[LITERAL_A];      
+    } else {
+      unit_left = digit_code[side_left_score % 10];
+      dec_left = digit_code[side_left_score / 10];
+      if (dec_left == digit_code[0]) dec_left = digit_code[10];  // if decen = 0 then turn it off (10)
+    }
+    if (side_right_score == 100) {
+      unit_right = digit_code[LITERAL_D];
+      dec_right = digit_code[LITERAL_A];    
+    } else {
+      unit_right = digit_code[side_right_score % 10];
+      dec_right = digit_code[side_right_score / 10];
+      if (dec_right == digit_code[0]) dec_right = digit_code[10];
+    }
     //Serial.println("scores ---> " + String(dec_left) + String(unit_left) + " " + String(dec_right) + String(unit_right));
     return (unit_right << 24) | (dec_right << 16) | (unit_left << 8) | (dec_left);
 }

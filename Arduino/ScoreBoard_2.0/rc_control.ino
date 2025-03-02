@@ -18,7 +18,6 @@ const int LONG_PRESS_OFFSET = 4;                 // Offset added to key values f
 RCSwitch mySwitch = RCSwitch();
 
 // Static variables (file scope)
-static unsigned long lastCheckTime = 0;
 static long lastReceivedValue = 0;
 static long currentReceivedValue = 0;
 static int repeatCount = 0;
@@ -41,7 +40,8 @@ int rc_check() {
     int keyPressed = 0;
     bool isLongPress = false;
     unsigned long currentTime = millis();
-
+    static unsigned long lastCheckTime = 0;
+    
     // Debounce check
     if ((currentTime - lastCheckTime) < DEBOUNCE_DELAY) {
         return 0;

@@ -2,6 +2,9 @@
 #define ADC_RESOLUTION 1024 
 #define VREF 2.0 // Reference voltage in volts
 
+const float v_low = 9;   // lowest battery voltage
+static float v_high = 12.4; // highest battery voltage 
+
 void analog_setup() {
   pinMode(ANALOG_PIN, INPUT);
 }
@@ -17,8 +20,6 @@ float analogToVoltage(int raw_value) {
 
 float voltageToCharge(float voltage) {
   float charge;
-  float v_low = 9;
-  static float v_high = 12.4;
   float m;
   m = 100 / (v_high - v_low);
   charge = m * (voltage - v_low);
@@ -35,4 +36,13 @@ float voltageToCharge(float voltage) {
     charge = 100;
   }
   return charge;
+}
+
+void update_battery_indication() {
+  int analogValue = analog_read();
+  float voltage = analogToVoltage(analogValue);
+  float charge = voltageToCharge(voltage);
+  if (charge < 35) rgbled(RGBLED_RED);
+  else if (charge < 50) rgbled(RGBLED_YELLOW);
+  else rgbled(RGBLED_GREEN);
 }
