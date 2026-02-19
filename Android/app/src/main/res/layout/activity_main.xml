@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -8,248 +7,200 @@
     android:background="@color/black"
     tools:context=".MainActivity">
 
-
     <LinearLayout
-        android:layout_width="344dp"
-        android:layout_height="750dp"
-        android:layout_marginStart="1dp"
-        android:layout_marginTop="1dp"
-        android:layout_marginEnd="1dp"
-        android:layout_marginBottom="1dp"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
         android:orientation="vertical"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+        android:padding="16dp">
+
+        <TextView
+            android:id="@+id/textView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="MakerHub ScoreBoard"
+            android:textAlignment="center"
+            android:textAppearance="@style/TextAppearance.AppCompat.Large"
+            android:textColor="@color/titulos"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/textView_connection_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Status: Disconnected"
+            android:textAlignment="center"
+            android:textColor="#FF0000"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/textView_battery"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:text="Battery: --%"
+            android:textAlignment="center"
+            android:textColor="@color/titulos"
+            android:textSize="14sp" />
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="97dp"
-            android:orientation="horizontal">
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:baselineAligned="false">
 
-            <ImageButton
-                android:layout_width="120dp"
-                android:layout_height="65dp"
-                android:layout_weight="1"
-                android:backgroundTint="@color/cardview_shadow_end_color"
-                android:contentDescription="Up"
-                android:scaleX="2"
-                android:scaleY="2"
-                android:src="@drawable/ball"
-                app:tint="#000000" />
-
-            <TextView
-                android:id="@+id/textView"
-                android:layout_width="match_parent"
-                android:layout_height="38dp"
-                android:layout_marginTop="36dp"
-                android:layout_weight="1"
-                android:text="MakerHub ScoreBoard"
-                android:textAlignment="center"
-                android:textAppearance="@style/TextAppearance.AppCompat.Large"
-                android:textColor="@color/titulos"
-                android:textStyle="bold" />
-
-            <ImageButton
-                android:layout_width="120dp"
-                android:layout_height="65dp"
-                android:layout_weight="1"
-                android:backgroundTint="@color/cardview_shadow_end_color"
-                android:contentDescription="Up"
-                android:scaleX="2"
-                android:scaleY="2"
-                android:src="@drawable/ball"
-                app:tint="#000000" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="62dp"
-            android:orientation="horizontal">
-
-            <Space
+            <!-- Side A Controls -->
+            <LinearLayout
                 android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1" />
-
-            <EditText
-                android:id="@+id/editTextText"
-                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:textSize="22sp"
-                android:inputType="text"
-                android:text="Side A"
-                android:textAlignment="center"
-                android:textColor="@color/titulos" />
+                android:gravity="center"
+                android:orientation="vertical">
 
-            <Space
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Side A"
+                    android:textColor="@color/titulos"
+                    android:textSize="18sp" />
+
+                <Button
+                    android:id="@+id/button_A_inc"
+                    android:layout_width="80dp"
+                    android:layout_height="60dp"
+                    android:layout_marginTop="8dp"
+                    android:backgroundTint="@color/buttons"
+                    android:text="+"
+                    android:textSize="24sp" />
+
+                <TextView
+                    android:id="@+id/textView_scoreA"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="0"
+                    android:textColor="@color/white"
+                    android:textSize="64sp"
+                    android:textStyle="bold" />
+
+                <Button
+                    android:id="@+id/button_A_dec"
+                    android:layout_width="80dp"
+                    android:layout_height="60dp"
+                    android:layout_marginTop="8dp"
+                    android:backgroundTint="@color/buttons"
+                    android:text="-"
+                    android:textSize="24sp" />
+            </LinearLayout>
+
+            <!-- Side B Controls -->
+            <LinearLayout
                 android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1" />
-
-            <EditText
-                android:id="@+id/editTextText2"
-                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:textSize="22sp"
-                android:inputType="text"
-                android:text="Side B"
-                android:textAlignment="center"
-                android:textColor="@color/titulos" />
+                android:gravity="center"
+                android:orientation="vertical">
 
-            <Space
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Side B"
+                    android:textColor="@color/titulos"
+                    android:textSize="18sp" />
+
+                <Button
+                    android:id="@+id/button_B_inc"
+                    android:layout_width="80dp"
+                    android:layout_height="60dp"
+                    android:layout_marginTop="8dp"
+                    android:backgroundTint="@color/buttons"
+                    android:text="+"
+                    android:textSize="24sp" />
+
+                <TextView
+                    android:id="@+id/textView_scoreB"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="0"
+                    android:textColor="@color/white"
+                    android:textSize="64sp"
+                    android:textStyle="bold" />
+
+                <Button
+                    android:id="@+id/button_B_dec"
+                    android:layout_width="80dp"
+                    android:layout_height="60dp"
+                    android:layout_marginTop="8dp"
+                    android:backgroundTint="@color/buttons"
+                    android:text="-"
+                    android:textSize="24sp" />
+            </LinearLayout>
         </LinearLayout>
 
-        <LinearLayout
+        <View
             android:layout_width="match_parent"
-            android:layout_height="108dp"
-            android:orientation="horizontal">
+            android:layout_height="0dp"
+            android:layout_weight="1" />
 
-            <Space
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1" />
-
-            <EditText
-                android:id="@+id/textbox_sideA"
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:textSize="38sp"
-                android:textAlignment="center"
-                android:text="0"
-                android:textColor="@color/buttons"
-                android:padding="1dp"
-                />
-
-            <Space
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1" />
-
-            <EditText
-                android:id="@+id/textbox_sideB"
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:textSize="38sp"
-                android:textAlignment="center"
-                android:text="0"
-                android:textColor="@color/buttons"
-                android:padding="1dp"
-                />
-
-            <Space
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1" />
-        </LinearLayout>
-
-        <LinearLayout
+        <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="108dp"
-            android:orientation="horizontal">
-
-            <Space
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1" />
-
-            <ImageButton
-                android:id="@+id/button_AM"
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:backgroundTint="@color/buttons"
-                android:contentDescription="Down"
-                android:src="@drawable/arrow_down"
-
-                app:tint="#000000" />
-
-            <Space
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1" />
-
-            <ImageButton
-                android:id="@+id/button_BM"
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:backgroundTint="@color/buttons"
-                android:contentDescription="Down"
-                android:src="@drawable/arrow_down"
-                app:tint="#000000" />
-
-            <Space
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="350dp"
-            android:orientation="vertical">
+            android:layout_height="60dp"
+            android:layout_marginBottom="8dp">
 
             <Button
                 android:id="@+id/button_reset"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="32dp"
-                android:layout_marginTop="28dp"
-                android:layout_marginEnd="32dp"
-                android:layout_weight="1"
+                android:layout_height="match_parent"
                 android:backgroundTint="@color/buttons"
-                android:text="Reset Counters"
-                android:textSize="22sp" />
+                android:text="Reset scores"
+                android:textSize="18sp" />
 
-            <Button
-                android:id="@+id/display_on_off"
+            <ProgressBar
+                android:id="@+id/progressBar_reset"
+                style="?android:attr/progressBarStyleHorizontal"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="32dp"
-                android:layout_marginTop="8dp"
-                android:layout_marginEnd="32dp"
-                android:layout_weight="1"
-                android:backgroundTint="@color/buttons"
-                android:text="Display ON/OFF"
-                android:textSize="22sp" />
+                android:layout_height="match_parent"
+                android:layout_margin="8dp"
+                android:visibility="invisible"
+                android:progressDrawable="@android:drawable/progress_horizontal"
+                android:progressTint="@color/white"
+                android:max="2000" />
+        </FrameLayout>
 
-            <Button
-                android:id="@+id/change_side"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="32dp"
-                android:layout_marginTop="8dp"
-                android:layout_marginEnd="32dp"
-                android:layout_weight="1"
-                android:backgroundTint="@color/buttons"
-                android:text="Change sides"
-                android:textSize="22sp" />
+        <Button
+            android:id="@+id/display_on_off"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:layout_marginBottom="8dp"
+            android:backgroundTint="@color/buttons"
+            android:text="Display ON/OFF"
+            android:textSize="18sp" />
 
-            <Button
-                android:id="@+id/close_app"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="32dp"
-                android:layout_marginTop="8dp"
-                android:layout_marginEnd="32dp"
-                android:layout_weight="1"
-                android:backgroundTint="@color/buttons"
-                android:text="CLOSE"
-                android:textSize="22sp" />
-        </LinearLayout>
+        <Button
+            android:id="@+id/sound_on_off"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:layout_marginBottom="8dp"
+            android:backgroundTint="@color/buttons"
+            android:text="Sound ON/OFF"
+            android:textSize="18sp" />
+
+        <Button
+            android:id="@+id/change_side"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:layout_marginBottom="8dp"
+            android:backgroundTint="@color/buttons"
+            android:text="Change sides"
+            android:textSize="18sp" />
+
+        <Button
+            android:id="@+id/close_app"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:backgroundTint="@color/buttons"
+            android:text="CLOSE"
+            android:textSize="18sp" />
 
     </LinearLayout>
-
-
 </androidx.constraintlayout.widget.ConstraintLayout>
-
-
-
