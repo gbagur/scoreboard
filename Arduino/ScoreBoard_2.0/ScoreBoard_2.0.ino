@@ -1,11 +1,26 @@
 /*
   ScoreBoard
   
+  Production/Debug Versioning:
+  - Define DEBUG_SERIAL to enable Serial monitoring and commands.
+  - Undefine DEBUG_SERIAL for Production (avoids blocking on startup).
 */
 
-#include <ArduinoBLE.h> //http://librarymanager/All#ArduinoBLE_IoT
+#include <ArduinoBLE.h> // http://librarymanager/All#ArduinoBLE_IoT
 #include <math.h>
 #include "leds.h"
+
+// --- CONFIGURATION ---
+// Comment this line out for PRODUCTION mode
+// #define DEBUG_SERIAL 
+
+#ifdef DEBUG_SERIAL
+  #define DEBUG_PRINT(x) Serial.print(x)
+  #define DEBUG_PRINTLN(x) Serial.println(x)
+#else
+  #define DEBUG_PRINT(x)
+  #define DEBUG_PRINTLN(x)
+#endif
 
 // button in
 #define BUTTON_IN           8
@@ -26,17 +41,23 @@
 #define CMD_SOUND_ON        14
 #define CMD_SOUND_OFF       15
 
-#define SLEEP_TIME          (5 * 60 *1000)
-#define ALARM_TIME          (20 * 60 *1000)
+#define SLEEP_TIME          (5 * 60 * 1000)
+#define ALARM_TIME          (20 * 60 * 1000)
 
+// BLE Services and Characteristics
 BLEService scoreService("45340637-dea7-48d7-9262-5f392e4317c6");
 BLEUnsignedIntCharacteristic commandCharacteristic("81044b7b-7fb3-41e1-9127-a8730afd24ff", BLERead | BLEWrite);
 
+// Battery Service (Standard BLE)
+BLEService batteryService("180F");
+BLEUnsignedCharCharacteristic batteryLevelChar("2A19", BLERead | BLENotify);
+
 int game_mode = 1;  // 1 - volleyball 2-tennis
-#define LAST_GAME_MODE  2
+#define LAST_GAME_MODE        2
 #define GAME_MODE_VOLLEYBALL  1
 #define GAME_MODE_TENNIS      2
 #define TENNIS_SCORE_ADVANTAGE 100
+
 int scoreSideLeft;
 int scoreSideRight;
 int setSideLeft = 0;
@@ -50,26 +71,34 @@ unsigned long lastUseTime;
 int state = 0;  // 0 - disconnected ; 1 - connected
 bool alarm = false;
 
+// Function Prototypes
+void scoreSet();
+void check_side_change();
+void blePeripheralConnectHandler(BLEDevice central);
+void blePeripheralDisconnectHandler(BLEDevice central);
+void commandCharacteristicWritten(BLEDevice central, BLECharacteristic characteristic);
+void updateBLEBattery();
 
-// the setup function runs once when you press reset or power the board
 void setup() {
   pinMode(BUTTON_IN, INPUT);
   debug_battery_level = (digitalRead(BUTTON_IN) == 0);
+  
   leds_setup();       // 4 x 7-segments 
-  // if(debug_battery_level) {
-  //   rgbleds_test();
-  // }
   rgbled(RGBLED_BLUE);
   power_setup();
   led_driver_setup();
   buzzerInit();
 
+#ifdef DEBUG_SERIAL
   Serial.begin(115200);
-  while (!Serial);
+  // This blocks the code until a serial monitor is opened. 
+  // Great for debugging, bad for production/battery use.
+  while (!Serial); 
+#endif
 
   // begin initialization
   if (!BLE.begin()) {
-    Serial.println("Starting BLE failed!");
+    DEBUG_PRINTLN("Starting BLE failed!");
     while (1);
   }
 
@@ -79,27 +108,26 @@ void setup() {
   
   // add the characteristic to the service
   scoreService.addCharacteristic(commandCharacteristic);
+  batteryService.addCharacteristic(batteryLevelChar);
 
-  // add service
+  // add services
   BLE.addService(scoreService);
+  BLE.addService(batteryService);
 
-  // set the initial value for the characeristic:
+  // set the initial value for the characteristics:
   commandCharacteristic.writeValue(0);
+  batteryLevelChar.writeValue(100);
 
   // start advertising
   BLE.advertise();
-  BLE.address();
   
   BLE.setEventHandler(BLEConnected, blePeripheralConnectHandler);
   BLE.setEventHandler(BLEDisconnected, blePeripheralDisconnectHandler);  
   commandCharacteristic.setEventHandler(BLEWritten, commandCharacteristicWritten);
   
-    Serial.print("Peripheral address: ");
-    Serial.println(BLE.address());
-    Serial.println("Setup finished.");
-  
-  
-  rc_setup();
+  DEBUG_PRINT("Peripheral address: ");
+  DEBUG_PRINTLN(BLE.address());
+  DEBUG_PRINTLN("Setup finished.");
 
   scoreSideLeft = 88;
   scoreSideRight = 88;
@@ -118,60 +146,34 @@ void loop() {
   static int button_in_pre;
   int button_in;
   static int note = 400;
-  int analogValue;
-  float voltage;
-  float charge;
-  int bat_ready;
   static unsigned long lastCheckTime = 0;
   static int debug_led_state = HIGH;
 
   currentTime = millis();
 
-  if (debug_battery_level)  {
-    LedsON = true;
-    if ((currentTime - lastCheckTime) > 1000) {
-      debug_led_state = !debug_led_state;
-      digitalWrite(D_LED1, debug_led_state);
+  // Power indication update and BLE Battery Update
+  if ((currentTime - lastCheckTime) > 1000) {
+    updateBLEBattery();
+    lastCheckTime = currentTime;
+    if (debug_battery_level) {
+      LedsON = true;
       update_battery_indication();
-      lastCheckTime = currentTime;
       digitalWrite(D_LED4, isBatteryReady());
-      
+      return;
     }
-    return;
+
   }
 
-  if (alarm == true ) {
-    buzzerStartMelody();
-    buzzerStartMelody();
-    buzzerStartMelody();
-    for (int i = 0; i<60; i++) {
-      if (digitalRead(BUTTON_IN) == 0) {
-        alarm = false;
-        lastUseTime = currentTime;
-        return;
-      } else {
-        delay (1000);
-      }
-    }
-    return;
-  }
-
-  if (LedsON == true && (currentTime - lastUseTime) > SLEEP_TIME ) {
-      LedsON = false;
-      scoreSet();
-      buzzerClick();
-  }
-
-  if (alarm == false && (currentTime - lastUseTime) > ALARM_TIME ) {
-      alarm = true;
+  if (LedsON == true && (currentTime - lastUseTime) > SLEEP_TIME) {
+    LedsON = false;
+    scoreSet();
+    buzzerClick();
   }
 
   // Button in
   button_in = digitalRead(BUTTON_IN);
   if (button_in == LOW && button_in_pre == HIGH) {
-  #ifdef DEBUG
-    Serial.println("Button pressed.");
-  #endif
+    DEBUG_PRINTLN("Button pressed.");
     lastUseTime = currentTime;
     game_mode = game_mode + 1;
     if (game_mode > LAST_GAME_MODE) game_mode = 1;
@@ -186,133 +188,35 @@ void loop() {
   }
   button_in_pre = button_in;
 
-  // Power indication update 
-  if ((currentTime - lastCheckTime) > 1000) {
-      update_battery_indication();
-      lastCheckTime = currentTime;
-  }
+
   
-  
-
-  // Remote control RF command reception 
-  int rc_key_pressed = rc_check();
-  if (rc_key_pressed) {
-    #ifdef DEBUG
-      Serial.print("RC Key pressed: ");
-      Serial.println(rc_key_pressed);
-    #endif
-    lastUseTime = currentTime;
-    buzzerClick();
-  }
-  
-  if (game_mode == GAME_MODE_VOLLEYBALL) {
-    switch (rc_key_pressed) {
-      case 1:
-        if (scoreSideLeft < 99) scoreSideLeft++;
-        break;
-      case 3:
-        if (scoreSideLeft > 0) scoreSideLeft--;
-        break;
-      case 2:
-        if (scoreSideRight < 99) scoreSideRight++;
-        break;
-      case 4:
-        if (scoreSideRight > 0) scoreSideRight--;
-        break;
-      case 7:
-        changeSideEnabled = false;
-        scoreSideLeft = 0;
-        scoreSideRight = 0;
-        break;
-      case 8:
-        changeSideEnabled = true;
-        scoreSideLeft = 0;
-        scoreSideRight = 0;
-      default: 
-        break;
-    }
-  }
-
-  if (game_mode == GAME_MODE_TENNIS) {
-    switch (rc_key_pressed) {
-      case 1:
-        increase_tennis_score(&scoreSideLeft);
-        break;
-      case 3:
-        decrease_tennis_score(&scoreSideLeft);
-        break;
-      case 2:
-        increase_tennis_score(&scoreSideRight);
-        break;
-      case 4:
-        decrease_tennis_score(&scoreSideRight);
-        break;
-      case 7:
-        scoreSideLeft = 0;
-        scoreSideRight = 0;
-        break;
-      case 8:
-        scoreSideLeft = 0;
-        scoreSideRight = 0;
-      default: 
-        break;
-    }
-  }
-
-  if (rc_key_pressed != 0) {
-    LedsON = true;
-    scoreSet();
-    #ifdef DEBUG
-      Serial.println("New score -> Team A: " + String(scoreSideLeft) + "   Team B: "+ String(scoreSideRight));
-    #endif
-  }
-  if (rc_key_pressed > 0 && rc_key_pressed < 5) {
-    check_side_change();
-  }
-
   BLE.poll();
-  if (Serial.available() > 0) { // Check if data is available to read
-    char command = Serial.read(); // Read the incoming command
+
+#ifdef DEBUG_SERIAL
+  if (Serial.available() > 0) {
+    char command = Serial.read();
     if (command == ' ' || command == '\n' || command == '\r') return;
-    #ifdef DEBUG
-      Serial.print("Commando recibido: ");
-      Serial.println(command);
-    #endif
-    switch (command)
-    {
+    
+    DEBUG_PRINT("Commando recibido: ");
+    DEBUG_PRINTLN(command);
+
+    switch (command) {
       case 'a':
         playNote(note, 1000);
         note = note + 50;
-        #ifdef DEBUG
-          Serial.print("Freq: ");
-          Serial.println(note);
-        #endif
+        DEBUG_PRINT("Freq: ");
+        DEBUG_PRINTLN(note);
         break;    
       case 'b':
         playNote(note, 1000);
         note = note - 50;
-        #ifdef DEBUG
-          Serial.print("Freq: ");
-          Serial.println(note);
-        #endif
+        DEBUG_PRINT("Freq: ");
+        DEBUG_PRINTLN(note);
         break;
-      case 'c': 
-        // {
-        //   const int pwmPin = 18;
-        //   const int sinResolution = 256;
-        //   const float sinMax = 255.0;
-        //   int dutyCycle;
-        //   for (int i = 0; i<1200; i++) {
-        //     dutyCycle = (sin(i * 2 * PI / sinResolution) + 1) * sinMax / 2;
-        //     analogWrite(pwmPin, dutyCycle);
-        //     delay(5);
-        //   }
-        // }
-        break;  
-      case 'd':
-        analogValue = analog_read();
-        voltage = analogToVoltage(analogValue);
-        charge = voltageToCharge(voltage);
+      case 'd': {
+        int analogValue = analog_read();
+        float voltage = analogToVoltage(analogValue);
+        float charge = voltageToCharge(voltage);
         Serial.print("Analog value on pin 35: ");
         Serial.println(analogValue);
         Serial.print("Voltage: ");
@@ -324,10 +228,25 @@ void loop() {
         Serial.print("Charge complete: ");
         Serial.println(isBatteryReady());
         break;
+      }
       default: 
         break;
     }
-  }  
+  }
+#endif
+}
+
+void updateBLEBattery() {
+  // Read battery status using existing hardware abstraction functions
+  int analogValue = analog_read();
+  float voltage = analogToVoltage(analogValue);
+  int charge = (int)voltageToCharge(voltage);
+  
+  // Constrain to 0-100 range for BLE standard compliance
+  if (charge > 100) charge = 100;
+  if (charge < 0) charge = 0;
+  
+  batteryLevelChar.writeValue((uint8_t)charge);
 }
 
 void changeSideCall(void) {
@@ -337,43 +256,39 @@ void changeSideCall(void) {
   scoreSideRight = temp;
   scoreSet();
   buzzerDucks2();
-};
+}
 
 void blePeripheralConnectHandler(BLEDevice central) {
-  #ifdef DEBUG
-    Serial.print("*Connected event, central: ");
-    Serial.println(central.address());
-  #endif
+  DEBUG_PRINT("*Connected event, central: ");
+  DEBUG_PRINTLN(central.address());
+  
   buzzerBLEconnected();
   state = 1; 
-  #ifdef DEBUG
-    Serial.println(F("State: 1 - Connected "));
-  #endif
+  DEBUG_PRINTLN(F("State: 1 - Connected "));
 }
 
 void blePeripheralDisconnectHandler(BLEDevice central) {
-  #ifdef DEBUG
-    Serial.print("*Disconnected event, central: ");
-    Serial.println(central.address());
-  #endif
+  DEBUG_PRINT("*Disconnected event, central: ");
+  DEBUG_PRINTLN(central.address());
+  
   state = 0; 
-  #ifdef DEBUG
-    Serial.println(F("State: 0 - Disocnnected"));
-  #endif
+  DEBUG_PRINTLN(F("State: 0 - Disconnected"));
   buzzerBLEdisconnected();
 }
 
 void commandCharacteristicWritten(BLEDevice central, BLECharacteristic characteristic) {
-    lastUseTime = currentTime;
-    buzzerClick();
-    int value = commandCharacteristic.value();
-    int command = value & 0xFF;
-    int data = (value >> 8 ) & 0xFF;
-    #ifdef DEBUG
-      Serial.println("BLE Command received: "+ String(command));
-      Serial.println("BLE data: "+ String(data));
-    #endif
-    switch (command) {
+  lastUseTime = currentTime;
+  buzzerClick();
+  int value = commandCharacteristic.value();
+  int command = value & 0xFF;
+  int data = (value >> 8) & 0xFF;
+
+  DEBUG_PRINT("BLE Command received: ");
+  DEBUG_PRINTLN(command);
+  DEBUG_PRINT("BLE data: ");
+  DEBUG_PRINTLN(data);
+
+  switch (command) {
     case CMD_SIDE_A_INC:
       if (scoreSideLeft < 99) scoreSideLeft++;
       LedsON = true;
@@ -423,42 +338,46 @@ void commandCharacteristicWritten(BLEDevice central, BLECharacteristic character
       buzzerSoundOff();
       break;
     case CMD_SOUND_ON_OFF:
-      soundOn = not (soundOn);
+      soundOn = !soundOn;
       if (!soundOn) buzzerSoundOff();
-      if (soundOn) buzzerSoundOn();      
+      else buzzerSoundOn();      
       break;
     default:
       break;
-    }
-    scoreSet();
-    #ifdef DEBUG
-      Serial.println("New score -> Team A: " + String(scoreSideLeft) + "   Team B: "+ String(scoreSideRight));
-    #endif
-    if (command==CMD_SIDE_A_INC || command==CMD_SIDE_B_INC) check_side_change();
+  }
+  scoreSet();
+
+  DEBUG_PRINT("New score -> Team A: ");
+  DEBUG_PRINT(scoreSideLeft);
+  DEBUG_PRINT("   Team B: ");
+  DEBUG_PRINTLN(scoreSideRight);
+
+  if (command == CMD_SIDE_A_INC || command == CMD_SIDE_B_INC) check_side_change();
 }
 
 void scoreSet() {
   set_score(scoreSideLeft, scoreSideRight);
-  #ifdef DEBUG
-    Serial.println("* Team A: " + String(scoreSideLeft) + "   Team B: "+ String(scoreSideRight));
-  #endif
+  DEBUG_PRINT("* Team A: ");
+  DEBUG_PRINT(scoreSideLeft);
+  DEBUG_PRINT("   Team B: ");
+  DEBUG_PRINTLN(scoreSideRight);
 }
 
 void check_side_change() {
-    if (changeSideEnabled && (game_mode == GAME_MODE_VOLLEYBALL)) {
-        if ((scoreSideLeft+scoreSideRight)%7==0 && (scoreSideLeft+scoreSideRight>0)) 
-        changeSideCall();
-    }
+  if (changeSideEnabled && (game_mode == GAME_MODE_VOLLEYBALL)) {
+    if ((scoreSideLeft + scoreSideRight) % 7 == 0 && (scoreSideLeft + scoreSideRight > 0)) 
+      changeSideCall();
+  }
 }
 
-void increase_tennis_score ( int * score) {
+void increase_tennis_score(int * score) {
   if (*score == 0) *score = 15;
   else if (*score == 15) *score = 30;
   else if (*score == 30) *score = 40;
   else if (*score == 40) *score = TENNIS_SCORE_ADVANTAGE;
 }
 
-void decrease_tennis_score (int * score) {
+void decrease_tennis_score(int * score) {
   if (*score == 15) *score = 0;
   else if (*score == 30) *score = 15;
   else if (*score == 40) *score = 30;
