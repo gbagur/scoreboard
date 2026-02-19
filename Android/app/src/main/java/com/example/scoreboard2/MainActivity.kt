@@ -85,6 +85,7 @@ class MainActivity : AppCompatActivity() {
 
     private var targetDeviceAddress: String? = null
     private var isReconnecting = false
+    private var isFirstConnection = true
     
     private val resetRunnable = object : Runnable {
         override fun run() {
@@ -385,6 +386,10 @@ class MainActivity : AppCompatActivity() {
 
                 runOnUiThread { 
                     commandQueue.clear()
+                    if (isFirstConnection) {
+                        writeCharacteristic(0, CMD_RESET_COUNTERS)
+                        isFirstConnection = false
+                    }
                     sendBothScores()
                     processQueue() 
                 }
