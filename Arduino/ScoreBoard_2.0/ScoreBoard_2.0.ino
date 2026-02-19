@@ -26,6 +26,9 @@
 #define CMD_SOUND_ON        14
 #define CMD_SOUND_OFF       15
 
+#define SLEEP_TIME          (5 * 60 *1000)
+#define ALARM_TIME          (20 * 60 *1000)
+
 BLEService scoreService("45340637-dea7-48d7-9262-5f392e4317c6");
 BLEUnsignedIntCharacteristic commandCharacteristic("81044b7b-7fb3-41e1-9127-a8730afd24ff", BLERead | BLEWrite);
 
@@ -36,14 +39,26 @@ int game_mode = 1;  // 1 - volleyball 2-tennis
 #define TENNIS_SCORE_ADVANTAGE 100
 int scoreSideLeft;
 int scoreSideRight;
+int setSideLeft = 0;
+int setSideRight = 0;
 int LedsON = true;
 int soundOn = true;
 bool changeSideEnabled = false;
+bool debug_battery_level = false;
+unsigned long currentTime;
+unsigned long lastUseTime;
+int state = 0;  // 0 - disconnected ; 1 - connected
+bool alarm = false;
+
 
 // the setup function runs once when you press reset or power the board
 void setup() {
   pinMode(BUTTON_IN, INPUT);
+  debug_battery_level = (digitalRead(BUTTON_IN) == 0);
   leds_setup();       // 4 x 7-segments 
+  // if(debug_battery_level) {
+  //   rgbleds_test();
+  // }
   rgbled(RGBLED_BLUE);
   power_setup();
   led_driver_setup();
@@ -95,9 +110,9 @@ void setup() {
   scoreSideLeft = 0;
   scoreSideRight = 0;
   scoreSet();
+  currentTime = millis();
+  lastUseTime = currentTime;
 }
-
-int state = 0;  // 0 - disconnected ; 1 - connected
 
 void loop() {
   static int button_in_pre;
@@ -107,16 +122,57 @@ void loop() {
   float voltage;
   float charge;
   int bat_ready;
-  unsigned long currentTime = millis();
   static unsigned long lastCheckTime = 0;
+  static int debug_led_state = HIGH;
+
+  currentTime = millis();
+
+  if (debug_battery_level)  {
+    LedsON = true;
+    if ((currentTime - lastCheckTime) > 1000) {
+      debug_led_state = !debug_led_state;
+      digitalWrite(D_LED1, debug_led_state);
+      update_battery_indication();
+      lastCheckTime = currentTime;
+      digitalWrite(D_LED4, isBatteryReady());
+      
+    }
+    return;
+  }
+
+  if (alarm == true ) {
+    buzzerStartMelody();
+    buzzerStartMelody();
+    buzzerStartMelody();
+    for (int i = 0; i<60; i++) {
+      if (digitalRead(BUTTON_IN) == 0) {
+        alarm = false;
+        lastUseTime = currentTime;
+        return;
+      } else {
+        delay (1000);
+      }
+    }
+    return;
+  }
+
+  if (LedsON == true && (currentTime - lastUseTime) > SLEEP_TIME ) {
+      LedsON = false;
+      scoreSet();
+      buzzerClick();
+  }
+
+  if (alarm == false && (currentTime - lastUseTime) > ALARM_TIME ) {
+      alarm = true;
+  }
 
   // Button in
-  
   button_in = digitalRead(BUTTON_IN);
   if (button_in == LOW && button_in_pre == HIGH) {
   #ifdef DEBUG
     Serial.println("Button pressed.");
   #endif
+    lastUseTime = currentTime;
     game_mode = game_mode + 1;
     if (game_mode > LAST_GAME_MODE) game_mode = 1;
     digitalWrite(D_LED1, HIGH);
@@ -145,6 +201,7 @@ void loop() {
       Serial.print("RC Key pressed: ");
       Serial.println(rc_key_pressed);
     #endif
+    lastUseTime = currentTime;
     buzzerClick();
   }
   
@@ -307,6 +364,7 @@ void blePeripheralDisconnectHandler(BLEDevice central) {
 }
 
 void commandCharacteristicWritten(BLEDevice central, BLECharacteristic characteristic) {
+    lastUseTime = currentTime;
     buzzerClick();
     int value = commandCharacteristic.value();
     int command = value & 0xFF;
@@ -392,7 +450,6 @@ void check_side_change() {
         changeSideCall();
     }
 }
-
 
 void increase_tennis_score ( int * score) {
   if (*score == 0) *score = 15;

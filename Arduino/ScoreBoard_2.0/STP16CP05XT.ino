@@ -27,8 +27,11 @@ uint8_t digit_code[13] = {
     0b01011110   // 12 'd'
 };
 
-#define LITERAL_A 11
-#define LITERAL_D 12
+#define DIGIT_OFF 10
+#define DIGIT_LITERAL_A 11
+#define DIGIT_LITERAL_D 12
+#define SCORE_LITERAL_AD 100
+#define SCORE_OFF 101
 
 void led_driver_setup() {
     pinMode(dataPin, OUTPUT);
@@ -53,21 +56,30 @@ uint32_t score2binary(uint16_t side_left_score, uint16_t side_right_score) {
     uint8_t dec_left;
     uint8_t unit_right;
     uint8_t dec_right;
-    if (side_left_score > 100) side_left_score = 101; // Limit score 
+    if (side_left_score > 101) side_left_score = 255; // Limit score - set error
     if (side_left_score < 0) side_left_score = 0; // Limit score 
-    if (side_right_score > 100) side_right_score = 101; // Limit score 
+    if (side_right_score > 101) side_right_score = 255; // Limit score 
     if (side_right_score < 0) side_right_score = 0; // Limit score
-    if (side_left_score == 100) {
-      unit_left = digit_code[LITERAL_D];
-      dec_left = digit_code[LITERAL_A];      
+
+    if (side_left_score == SCORE_OFF) {
+      unit_left = digit_code[DIGIT_OFF];
+      dec_left = digit_code[DIGIT_OFF];      
+    }
+    else if (side_left_score == SCORE_LITERAL_AD) {
+      unit_left = digit_code[DIGIT_LITERAL_D];
+      dec_left = digit_code[DIGIT_LITERAL_A];      
     } else {
       unit_left = digit_code[side_left_score % 10];
       dec_left = digit_code[side_left_score / 10];
       if (dec_left == digit_code[0]) dec_left = digit_code[10];  // if decen = 0 then turn it off (10)
     }
-    if (side_right_score == 100) {
-      unit_right = digit_code[LITERAL_D];
-      dec_right = digit_code[LITERAL_A];    
+    if (side_right_score == SCORE_OFF) {
+      unit_right = digit_code[DIGIT_OFF];
+      dec_right = digit_code[DIGIT_OFF];      
+    }
+    else if (side_right_score == SCORE_LITERAL_AD) {
+      unit_right = digit_code[DIGIT_LITERAL_D];
+      dec_right = digit_code[DIGIT_LITERAL_A];    
     } else {
       unit_right = digit_code[side_right_score % 10];
       dec_right = digit_code[side_right_score / 10];

@@ -24,3 +24,16 @@ void leds_test () {
     delay(1);                           // wait for a second
   }
 }
+
+void rgbleds_test () {
+  rgbled(RGBLED_RED); delay(800);  
+  rgbled(RGBLED_GREEN); delay(800);  
+  rgbled(RGBLED_BLUE); delay(800);  
+  rgbled(RGBLED_YELLOW); delay(800);  
+  rgbled(RGBLED_MAGENTA); delay(800);  
+  rgbled(RGBLED_CYAN); delay(800);  
+  rgbled(RGBLED_WHITE); delay(800);  
+  rgbled(RGBLED_OFF); delay(800);  
+}
+
+
