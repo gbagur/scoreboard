@@ -261,13 +261,14 @@
 
         <Button
             android:id="@+id/close_app"
-            style="@style/Widget.MaterialComponents.Button.TextButton"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="EXIT APPLICATION"
-            android:textColor="#424242"
-            android:textSize="11sp" />
+            android:layout_height="60dp"
+            android:layout_margin="4dp"
+            android:backgroundTint="@color/buttons"
+            android:text="DISCONNECT SCOREBOARD"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            app:cornerRadius="12dp" />
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

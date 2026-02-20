@@ -12,6 +12,7 @@ import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothGattDescriptor
 import android.bluetooth.BluetoothManager
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
 import android.graphics.Color
@@ -49,6 +50,7 @@ const val CMD_SOUND_OFF       = 15
 
 const val SCOREBOARD_SERVICE_UUID = "45340637-DEA7-48D7-9262-5F392E4317C6"
 const val SCOREBOARD_COMMAND_CHARACTERISTIC_UUID = "81044b7b-7fb3-41e1-9127-a8730afd24ff"
+const val SCORE_SYNC_CHARACTERISTIC_UUID = "3c870e28-2f8d-4f6c-9742-996914597f8c"
 
 const val BATTERY_SERVICE_UUID = "0000180f-0000-1000-8000-00805f9b34fb"
 const val BATTERY_LEVEL_CHARACTERISTIC_UUID = "00002a19-0000-1000-8000-00805f9b34fb"
@@ -87,6 +89,9 @@ class MainActivity : AppCompatActivity() {
     private var isReconnecting = false
     private var isFirstConnection = true
     
+    // State machine for setup
+    private var setupStep = 0
+
     private val resetRunnable = object : Runnable {
         override fun run() {
             val elapsedTime = System.currentTimeMillis() - resetPressStartTime
@@ -193,6 +198,9 @@ class MainActivity : AppCompatActivity() {
             writeCharacteristic(0, CMD_CHANGE_SIDES)
         }
         findViewById<Button>(R.id.close_app).setOnClickListener {
+            disconnectBLE()
+            val intent = Intent(this, ConnectActivity::class.java)
+            startActivity(intent)
             finish()
         }
 
@@ -225,6 +233,7 @@ class MainActivity : AppCompatActivity() {
         scoreB = 0
         updateUI()
         writeCharacteristic(0, CMD_RESET_COUNTERS)
+        writeCharacteristic(0, CMD_DISPLAY_ON)
         Toast.makeText(this, "Scores Reset", Toast.LENGTH_SHORT).show()
     }
 
@@ -305,17 +314,19 @@ class MainActivity : AppCompatActivity() {
         val char = bluetoothCharacteristicCommand ?: return
         val gatt = bluetoothGatt ?: return
         
-        val payload = commandQueue.poll() ?: return
+        val payload = commandQueue.peek() ?: return
         isWriting = true
         
         char.value = payload
         
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) {
             val success = gatt.writeCharacteristic(char)
-            if (!success) {
-                Log.e("BLE", "Failed to initiate write for command ${payload[0]}")
+            if (success) {
+                commandQueue.poll() 
+            } else {
+                Log.e("BLE", "Failed to initiate write for command ${payload[0]}, will retry...")
                 isWriting = false
-                processQueue()
+                mainHandler.postDelayed({ processQueue() }, 100)
             }
         } else {
             isWriting = false
@@ -353,6 +364,7 @@ class MainActivity : AppCompatActivity() {
                 gatt.close()
             }
             bluetoothGatt = null
+            setupStep = 0
             retryConnection()
         }
 
@@ -362,74 +374,144 @@ class MainActivity : AppCompatActivity() {
                 val service = gatt.getService(UUID.fromString(SCOREBOARD_SERVICE_UUID))
                 bluetoothCharacteristicCommand = service?.getCharacteristic(UUID.fromString(SCOREBOARD_COMMAND_CHARACTERISTIC_UUID))
                 
-                // Enable Battery Level notifications
-                val batteryService = gatt.getService(UUID.fromString(BATTERY_SERVICE_UUID))
-                val batteryLevelChar = batteryService?.getCharacteristic(UUID.fromString(BATTERY_LEVEL_CHARACTERISTIC_UUID))
-                
-                if (batteryLevelChar != null) {
-                    Log.d("BLE", "Battery characteristic found")
-                    if (ActivityCompat.checkSelfPermission(this@MainActivity, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) {
+                setupStep = 1
+                nextSetupStep(gatt)
+            }
+        }
+
+        private fun nextSetupStep(gatt: BluetoothGatt) {
+            if (ActivityCompat.checkSelfPermission(this@MainActivity, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) return
+
+            when (setupStep) {
+                1 -> {
+                    // Enable Battery notifications
+                    val batteryService = gatt.getService(UUID.fromString(BATTERY_SERVICE_UUID))
+                    val batteryLevelChar = batteryService?.getCharacteristic(UUID.fromString(BATTERY_LEVEL_CHARACTERISTIC_UUID))
+                    if (batteryLevelChar != null) {
                         gatt.setCharacteristicNotification(batteryLevelChar, true)
                         val descriptor = batteryLevelChar.getDescriptor(UUID.fromString(CLIENT_CHARACTERISTIC_CONFIG_UUID))
                         if (descriptor != null) {
                             descriptor.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+                            isWriting = true
                             gatt.writeDescriptor(descriptor)
                         } else {
-                            Log.e("BLE", "Battery CCCD descriptor not found")
-                            // If no descriptor, try to read at least
-                            gatt.readCharacteristic(batteryLevelChar)
+                            setupStep = 2
+                            nextSetupStep(gatt)
                         }
+                    } else {
+                        setupStep = 2
+                        nextSetupStep(gatt)
                     }
-                } else {
-                    Log.e("BLE", "Battery characteristic NOT found")
                 }
-
-                runOnUiThread { 
-                    commandQueue.clear()
-                    if (isFirstConnection) {
-                        writeCharacteristic(0, CMD_RESET_COUNTERS)
-                        isFirstConnection = false
+                2 -> {
+                    // Enable Score Sync notifications
+                    val service = gatt.getService(UUID.fromString(SCOREBOARD_SERVICE_UUID))
+                    val scoreSyncChar = service?.getCharacteristic(UUID.fromString(SCORE_SYNC_CHARACTERISTIC_UUID))
+                    if (scoreSyncChar != null) {
+                        gatt.setCharacteristicNotification(scoreSyncChar, true)
+                        val descriptor = scoreSyncChar.getDescriptor(UUID.fromString(CLIENT_CHARACTERISTIC_CONFIG_UUID))
+                        if (descriptor != null) {
+                            descriptor.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+                            isWriting = true
+                            gatt.writeDescriptor(descriptor)
+                        } else {
+                            setupStep = 3
+                            nextSetupStep(gatt)
+                        }
+                    } else {
+                        setupStep = 3
+                        nextSetupStep(gatt)
                     }
-                    sendBothScores()
-                    processQueue() 
+                }
+                3 -> {
+                    // Initial Score Read
+                    val service = gatt.getService(UUID.fromString(SCOREBOARD_SERVICE_UUID))
+                    val scoreSyncChar = service?.getCharacteristic(UUID.fromString(SCORE_SYNC_CHARACTERISTIC_UUID))
+                    if (scoreSyncChar != null && isFirstConnection) {
+                        isWriting = true
+                        gatt.readCharacteristic(scoreSyncChar)
+                    } else {
+                        setupStep = 4
+                        nextSetupStep(gatt)
+                    }
+                }
+                4 -> {
+                    // Start processing Command Queue
+                    runOnUiThread {
+                        if (isFirstConnection) {
+                            // If we didn't manage to read score, we'd reset here, but we'll trust the read for now.
+                            // However, we still want to ensure display is ON.
+                            writeCharacteristic(0, CMD_DISPLAY_ON)
+                            isFirstConnection = false
+                        } else {
+                            sendBothScores()
+                        }
+                        isWriting = false
+                        processQueue()
+                    }
                 }
             }
         }
 
         override fun onDescriptorWrite(gatt: BluetoothGatt, descriptor: BluetoothGattDescriptor, status: Int) {
-            if (descriptor.characteristic.uuid == UUID.fromString(BATTERY_LEVEL_CHARACTERISTIC_UUID)) {
-                Log.d("BLE", "Battery notification enabled, reading initial value")
-                if (ActivityCompat.checkSelfPermission(this@MainActivity, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) {
-                    gatt.readCharacteristic(descriptor.characteristic)
-                }
-            }
+            Log.d("BLE", "Descriptor write status: $status for ${descriptor.uuid}")
+            isWriting = false
+            setupStep++
+            nextSetupStep(gatt)
         }
 
         override fun onCharacteristicRead(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, status: Int) {
-            if (status == BluetoothGatt.GATT_SUCCESS && characteristic.uuid == UUID.fromString(BATTERY_LEVEL_CHARACTERISTIC_UUID)) {
-                val batteryLevel = characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, 0)
-                Log.d("BLE", "Battery Level Read: $batteryLevel")
-                runOnUiThread {
-                    textViewBattery.text = "Battery: $batteryLevel%"
+            isWriting = false
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                when (characteristic.uuid) {
+                    UUID.fromString(BATTERY_LEVEL_CHARACTERISTIC_UUID) -> {
+                        val batteryLevel = characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, 0)
+                        Log.d("BLE", "Battery Level Read: $batteryLevel")
+                        runOnUiThread {
+                            textViewBattery.text = "Battery: $batteryLevel%"
+                        }
+                    }
+                    UUID.fromString(SCORE_SYNC_CHARACTERISTIC_UUID) -> {
+                        val combinedScore = characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT16, 0)
+                        scoreA = combinedScore and 0xFF
+                        scoreB = (combinedScore shr 8) and 0xFF
+                        Log.d("BLE", "Score Sync Read: $scoreA - $scoreB")
+                        runOnUiThread {
+                            updateUI()
+                        }
+                    }
                 }
+            }
+            if (setupStep == 3) {
+                setupStep++
+                nextSetupStep(gatt)
             }
         }
 
         override fun onCharacteristicChanged(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic) {
-            if (characteristic.uuid == UUID.fromString(BATTERY_LEVEL_CHARACTERISTIC_UUID)) {
-                val batteryLevel = characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, 0)
-                Log.d("BLE", "Battery Level Changed: $batteryLevel")
-                runOnUiThread {
-                    textViewBattery.text = "Battery: $batteryLevel%"
+            when (characteristic.uuid) {
+                UUID.fromString(BATTERY_LEVEL_CHARACTERISTIC_UUID) -> {
+                    val batteryLevel = characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, 0)
+                    Log.d("BLE", "Battery Level Changed: $batteryLevel")
+                    runOnUiThread {
+                        textViewBattery.text = "Battery: $batteryLevel%"
+                    }
+                }
+                UUID.fromString(SCORE_SYNC_CHARACTERISTIC_UUID) -> {
+                    val combinedScore = characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT16, 0)
+                    scoreA = combinedScore and 0xFF
+                    scoreB = (combinedScore shr 8) and 0xFF
+                    Log.d("BLE", "Score Sync Changed: $scoreA - $scoreB")
+                    runOnUiThread {
+                        updateUI()
+                    }
                 }
             }
         }
 
         override fun onCharacteristicWrite(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, status: Int) {
             Log.d("BLE", "Write completed with status: $status")
-            synchronized(this@MainActivity) {
-                isWriting = false
-            }
+            isWriting = false
             runOnUiThread { processQueue() }
         }
     }
