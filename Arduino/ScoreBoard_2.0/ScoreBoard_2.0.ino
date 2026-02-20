@@ -47,6 +47,8 @@
 // BLE Services and Characteristics
 BLEService scoreService("45340637-dea7-48d7-9262-5f392e4317c6");
 BLEUnsignedIntCharacteristic commandCharacteristic("81044b7b-7fb3-41e1-9127-a8730afd24ff", BLERead | BLEWrite);
+// New Characteristic to broadcast the score (Notify lets the app listen for changes)
+BLEUnsignedIntCharacteristic scoreCharacteristic("3c870e28-2f8d-4f6c-9742-996914597f8c", BLERead | BLENotify);
 
 // Battery Service (Standard BLE)
 BLEService batteryService("180F");
@@ -108,6 +110,7 @@ void setup() {
   
   // add the characteristic to the service
   scoreService.addCharacteristic(commandCharacteristic);
+  scoreService.addCharacteristic(scoreCharacteristic);
   batteryService.addCharacteristic(batteryLevelChar);
 
   // add services
@@ -116,6 +119,7 @@ void setup() {
 
   // set the initial value for the characteristics:
   commandCharacteristic.writeValue(0);
+  scoreCharacteristic.writeValue(0);
   batteryLevelChar.writeValue(100);
 
   // start advertising
@@ -151,17 +155,17 @@ void loop() {
 
   currentTime = millis();
 
-  // Power indication update and BLE Battery Update
-  if ((currentTime - lastCheckTime) > 1000) {
-    updateBLEBattery();
-    lastCheckTime = currentTime;
-    if (debug_battery_level) {
-      LedsON = true;
+  if (debug_battery_level) {
+    LedsON = true;
+    if ((currentTime - lastCheckTime) > 1000) {
+      debug_led_state = !debug_led_state;
+      digitalWrite(D_LED1, debug_led_state);
       update_battery_indication();
+      updateBLEBattery();
+      lastCheckTime = currentTime;
       digitalWrite(D_LED4, isBatteryReady());
-      return;
     }
-
+    return;
   }
 
   if (LedsON == true && (currentTime - lastUseTime) > SLEEP_TIME) {
@@ -188,7 +192,12 @@ void loop() {
   }
   button_in_pre = button_in;
 
-
+  // Power indication update and BLE Battery Update
+  if ((currentTime - lastCheckTime) > 1000) {
+    update_battery_indication();
+    updateBLEBattery();
+    lastCheckTime = currentTime;
+  }
   
   BLE.poll();
 
@@ -237,12 +246,10 @@ void loop() {
 }
 
 void updateBLEBattery() {
-  // Read battery status using existing hardware abstraction functions
   int analogValue = analog_read();
   float voltage = analogToVoltage(analogValue);
   int charge = (int)voltageToCharge(voltage);
   
-  // Constrain to 0-100 range for BLE standard compliance
   if (charge > 100) charge = 100;
   if (charge < 0) charge = 0;
   
@@ -265,6 +272,8 @@ void blePeripheralConnectHandler(BLEDevice central) {
   buzzerBLEconnected();
   state = 1; 
   DEBUG_PRINTLN(F("State: 1 - Connected "));
+  LedsON = true;
+  scoreSet();
 }
 
 void blePeripheralDisconnectHandler(BLEDevice central) {
@@ -357,6 +366,12 @@ void commandCharacteristicWritten(BLEDevice central, BLECharacteristic character
 
 void scoreSet() {
   set_score(scoreSideLeft, scoreSideRight);
+  
+  // Update BLE Score Characteristic
+  // Pack both scores into 16 bits: Left in low byte, Right in high byte
+  uint16_t combinedScore = (uint8_t)scoreSideLeft | ((uint8_t)scoreSideRight << 8);
+  scoreCharacteristic.writeValue(combinedScore);
+
   DEBUG_PRINT("* Team A: ");
   DEBUG_PRINT(scoreSideLeft);
   DEBUG_PRINT("   Team B: ");
